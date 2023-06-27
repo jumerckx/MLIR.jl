@@ -248,33 +248,33 @@ end
 
 # ---
 
-using Test
-using MLIR.IR, MLIR
+# using Test
+# using MLIR.IR, MLIR
 
-ctx = Context()
-# IR.enable_multithreading!(ctx, false)
+# ctx = Context()
+# # IR.enable_multithreading!(ctx, false)
 
-op = Brutus.code_mlir(pow, Tuple{Int, Int}; ctx)
+# op = Brutus.code_mlir(pow, Tuple{Int, Int}; ctx)
 
-mod = MModule(ctx, Location(ctx))
-body = IR.get_body(mod)
-push!(body, op)
+# mod = MModule(ctx, Location(ctx))
+# body = IR.get_body(mod)
+# push!(body, op)
 
-pm = IR.PassManager(ctx)
-opm = IR.OpPassManager(pm)
+# pm = IR.PassManager(ctx)
+# opm = IR.OpPassManager(pm)
 
-# IR.enable_ir_printing!(pm)
-IR.enable_verifier!(pm, true)
+# # IR.enable_ir_printing!(pm)
+# IR.enable_verifier!(pm, true)
 
-MLIR.API.mlirRegisterAllPasses()
-MLIR.API.mlirRegisterAllLLVMTranslations(ctx)
-IR.add_pipeline!(opm, Brutus.LLVM.version() >= v"15" ? "convert-arith-to-llvm,convert-func-to-llvm" : "convert-std-to-llvm")
+# MLIR.API.mlirRegisterAllPasses()
+# MLIR.API.mlirRegisterAllLLVMTranslations(ctx)
+# IR.add_pipeline!(opm, Brutus.LLVM.version() >= v"15" ? "convert-arith-to-llvm,convert-func-to-llvm" : "convert-std-to-llvm")
 
-IR.run!(pm, mod)
+# IR.run!(pm, mod)
 
-jit = MLIR.API.mlirExecutionEngineCreate(mod, 0, 0, C_NULL)
-fptr = MLIR.API.mlirExecutionEngineLookup(jit, "pow")
+# jit = MLIR.API.mlirExecutionEngineCreate(mod, 0, 0, C_NULL)
+# fptr = MLIR.API.mlirExecutionEngineLookup(jit, "pow")
 
-x, y = 3, 4
+# x, y = 3, 4
 
-@test ccall(fptr, Int, (Int, Int), x, y) == pow(x, y)
+# @test ccall(fptr, Int, (Int, Int), x, y) == pow(x, y)

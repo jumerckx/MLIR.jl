@@ -37,5 +37,6 @@ end
 
 include("./IR.jl")
 include("./Dialects.jl")
+include("../examples/brutus.jl")
 
 end # module MLIR
