@@ -34,7 +34,7 @@ function Base.unsafe_convert(::Type{API.MlirStringRef}, s::Union{Symbol, String,
     p = Base.unsafe_convert(Ptr{Cchar}, s)
     return API.MlirStringRef(p, length(s))
 end
-
+include("./init.jl")
 include("./IR.jl")
 include("./Dialects.jl")
 include("../examples/brutus.jl")

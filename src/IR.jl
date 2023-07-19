@@ -93,8 +93,10 @@ function DialectRegistry()
 end
 
 function Base.insert!(registry::DialectRegistry, handle::DialectHandle)
-    API.mlirDialectHandleInsertDialect(registry, handle)
+    API.mlirDialectHandleInsertDialect(handle, registry)
 end
+
+Base.convert(::Type{MlirDialectRegistry}, r::DialectRegistry) = r.registry
 
 ### Context
 
@@ -556,7 +558,7 @@ function create_operation(
         if mlirIsNull(op)
             error("Create Operation failed")
         end
-        Operation(op, true)
+        op
     end
 end
 

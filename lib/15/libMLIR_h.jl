@@ -4434,6 +4434,14 @@ function mlirEmitError(location, message)
     @ccall mlir_c.mlirEmitError(location::MlirLocation, message::Cstring)::Cvoid
 end
 
+function mlirGetDialectHandle__standalone__()
+    @ccall mlir_c.mlirGetDialectHandle__standalone__()::MlirDialectHandle
+end
+
+function mlirGetDialectHandle__jlir__()
+    @ccall mlir_c.mlirGetDialectHandle__jlir__()::MlirDialectHandle
+end
+
 function mlirGetDialectHandle__async__()
     @ccall mlir_c.mlirGetDialectHandle__async__()::MlirDialectHandle
 end
