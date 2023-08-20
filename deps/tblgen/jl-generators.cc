@@ -15,8 +15,8 @@
 
 #include <functional>
 #include <regex>
+#include <optional>
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/StringExtras.h"
@@ -249,7 +249,7 @@ std::unique_ptr<AttrPattern> tryGetAttrPattern(
   }
 }
 
-const std::string sanitizeName(llvm::StringRef name, llvm::Optional<int> idx = llvm::None) {
+const std::string sanitizeName(llvm::StringRef name, std::optional<int> idx = std::nullopt) {
   static const llvm::StringSet<>* kReservedNames = new llvm::StringSet<>{
       // TODO(apaszke): Add more keywords
       // Haskell keywords
@@ -294,7 +294,7 @@ class OpAttrPattern {
         patterns(std::move(patterns)) {}
 
  public:
-  static llvm::Optional<OpAttrPattern> buildFor(mlir::tblgen::Operator& op) {
+  static std::optional<OpAttrPattern> buildFor(mlir::tblgen::Operator& op) {
     if (op.getNumAttributes() == 0) return OpAttrPattern("NoAttrs", {}, {}, {});
 
     NameSource gen("a");
@@ -320,7 +320,7 @@ class OpAttrPattern {
         }
         warn(op, llvm::formatv("unsupported attr ({0})",
                                named_attr.attr.getAttrDefName()));
-        return llvm::None;
+        return std::nullopt;
       }
       binders.push_back(sanitizeName(named_attr.name) + "_");
       attrs.push_back(named_attr);
@@ -394,7 +394,7 @@ pattern {0} {2:$[ ]} <- ((\m -> ({3:$[, ]})) -> ({4:$[, ]}))
   std::vector<std::unique_ptr<AttrPattern>> patterns;
 };
 
-llvm::Optional<std::string> buildOperation(
+std::optional<std::string> buildOperation(
     const llvm::Record* def, bool is_pattern, const std::string& what_for,
     const std::string& location_expr,
     const std::vector<std::string>& type_exprs,
@@ -404,7 +404,7 @@ llvm::Optional<std::string> buildOperation(
   mlir::tblgen::Operator op(def);
   auto fail = [&op, &what_for](std::string reason) {
     warn(op, llvm::formatv("couldn't construct {0}: {1}", what_for, reason));
-    return llvm::Optional<std::string>();
+    return std::optional<std::string>();
   };
 
   // Skip currently unsupported cases
@@ -636,7 +636,7 @@ void emitBuilderMethod(mlir::tblgen::Operator& op,
 
   builder_arg_types.push_back("");  // To add the arrow before m
 
-  llvm::Optional<std::string> operation =
+  std::optional<std::string> operation =
       buildOperation(&op.getDef(), false, "builder", "UnknownLocation",
                      type_exprs, operand_name_exprs, region_binders,
                      attr_pattern);
@@ -720,7 +720,7 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   pattern_arg_types.insert(pattern_arg_types.end(), attr_types.begin(),
                            attr_types.end());
 
-  llvm::Optional<std::string> operation = buildOperation(
+  std::optional<std::string> operation = buildOperation(
       def, true, "pattern", "loc",
       type_binders, operand_binders, {}, attr_pattern);
   if (!operation) return;
@@ -785,7 +785,7 @@ bool emitOpTableDefs(const llvm::RecordKeeper& recordKeeper,
       os << formatDescription(op);
       os << "\n";
     }
-    llvm::Optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
+    std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
     if (!attr_pattern) continue;
     attr_pattern->print(os, attr_pattern_state);
     emitPattern(def, *attr_pattern, os);
@@ -826,7 +826,7 @@ bool emitOpTableDefs(const llvm::RecordKeeper& recordKeeper,
 //   os << llvm::formatv(module_header, dialect_name);
 //   for (const auto* def : defs) {
 //     mlir::tblgen::Operator op(*def);
-//     llvm::Optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
+//     std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
 //     if (!attr_pattern) continue;
 //     os << "\n  Hspec.describe \"" << op.getOperationName() << "\" $ do";
 //     const char* bidirectional_test_template = R"(
