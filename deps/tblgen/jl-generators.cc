@@ -253,7 +253,7 @@ const std::string sanitizeName(llvm::StringRef name, std::optional<int> idx = st
   static const llvm::StringSet<>* kReservedNames = new llvm::StringSet<>{
       // TODO(apaszke): Add more keywords
       // Haskell keywords
-      "in", "data", "if"
+      // "in", "data", "if"
   };
   if (name.empty()) {
     assert(idx);
@@ -496,15 +496,24 @@ std::optional<std::string> buildOperation(
                                 make_range(segment_sizes));
   }
 
-  const char* kPatternExplicitType = R"(Operation
-          { opName = "{0}"
-          , opLocation = {1}
-          , opResultTypes = Explicit {2}
-          , opOperands = {3}
-          , opRegions = [{4:$[ , ]}]
-          , opSuccessors = []
-          , opAttributes = ({5}{6}{7:$[ ]}){8}
-          })";
+  // const char* kPatternExplicitType = R"(Operation
+  //         { opName = "{0}"
+  //         , opLocation = {1}
+  //         , opResultTypes = Explicit {2}
+  //         , opOperands = {3}
+  //         , opRegions = [{4:$[ , ]}]
+  //         , opSuccessors = []
+  //         , opAttributes = ({5}{6}{7:$[ ]}){8}
+  //         })";
+  const char* kPatternExplicitType = R"(create_operation(
+        "{0}", {1}, 
+        results = {2}, 
+        operands = {3}
+        owned_regions = [{4:$[ , ]}], 
+        successors = [], 
+        attributes = [{5}{6}{7:$[ ]}]{8},
+        result_inference=false
+      ))";
   return llvm::formatv(kPatternExplicitType,
                        op.getOperationName(),                    // 0
                        location_expr,                            // 1
@@ -530,137 +539,6 @@ std::string stripDialect(std::string name) {
   size_t dialect_sep_loc = name.find('.');
   assert(dialect_sep_loc != std::string::npos);
   return name.substr(dialect_sep_loc + 1);
-}
-
-void emitBuilderMethod(mlir::tblgen::Operator& op,
-                       const OpAttrPattern& attr_pattern, llvm::raw_ostream& os) {
-  auto fail = [&op](std::string reason) {
-    warn(op, "couldn't construct builder: " + reason);
-  };
-
-  if (op.getNumVariadicRegions() != 0) return fail("variadic regions");
-  if (op.getNumSuccessors() != 0) return fail("successors");
-
-  const char* result_type;
-  std::string prologue;
-  const char* continuation = "";
-  if (op.getNumResults() == 0) {
-    prologue = "Control.Monad.void ";
-    if (op.getTrait("::mlir::OpTrait::IsTerminator")) {
-      result_type = "EndOfBlock";
-      continuation = "\n  AST.terminateBlock";
-    } else {
-      result_type = "()";
-    }
-  } else if (op.getNumResults() == 1) {
-    result_type = "Value";
-    prologue = "Control.Monad.liftM Prelude.head ";
-  } else {
-    result_type = "[Value]";
-    prologue = "";
-  }
-
-  std::string builder_name = sanitizeName(legalizeBuilderName(stripDialect(op.getOperationName())));
-
-  std::vector<std::string> builder_arg_types;
-
-  // TODO(apaszke): Use inference (op.getSameTypeAsResult)
-  std::vector<std::string> type_exprs;
-  std::vector<std::string> type_binders;
-  if (op.getNumResults() == 0) {
-    // Nothing to do.
-  } else if (op.getNumVariableLengthResults() == 0 &&
-             op.getTrait("::mlir::OpTrait::SameOperandsAndResultType")) {
-    for (const mlir::tblgen::NamedTypeConstraint& operand : op.getOperands()) {
-      if (operand.isVariableLength()) continue;
-      type_exprs.push_back("(AST.typeOf " + sanitizeName(operand.name) + "_)");
-      break;
-    }
-    if (type_exprs.empty()) return fail("type inference failed");
-  } else {
-    int result_nr = 0;
-    for (const mlir::tblgen::NamedTypeConstraint& result : op.getResults()) {
-      type_binders.push_back(llvm::formatv("ty{0}", result_nr++));
-      type_exprs.push_back(type_binders.back());
-      if (result.isOptional()) {
-        builder_arg_types.push_back("Maybe Type");
-      } else if (result.isVariadic()) {
-        builder_arg_types.push_back("[Type]");
-      } else {
-        assert(!result.isVariableLength());
-        builder_arg_types.push_back("Type");
-      }
-    }
-  }
-
-  std::vector<std::string> operand_binders;
-  std::vector<std::string> operand_name_exprs;
-  operand_name_exprs.reserve(op.getNumOperands());
-  for (int i = 0; i < op.getNumOperands(); ++i) {
-    const auto& operand = op.getOperand(i);
-    std::string operand_name = sanitizeName(operand.name, i) + "_";
-    operand_binders.push_back(operand_name);
-    if (operand.isOptional()) {
-      builder_arg_types.push_back("Maybe Value");
-      operand_name_exprs.push_back("(AST.operand <$> " + operand_name + ")");
-    } else if (operand.isVariadic()) {
-      builder_arg_types.push_back("[Value]");
-      operand_name_exprs.push_back("(AST.operands " + operand_name + ")");
-    } else {
-      assert(!operand.isVariableLength());
-      builder_arg_types.push_back("Value");
-      operand_name_exprs.push_back("(AST.operand " + operand_name + ")");
-    }
-  }
-
-  auto attr_types = attr_pattern.types();
-  builder_arg_types.insert(builder_arg_types.end(), attr_types.begin(),
-                           attr_types.end());
-
-  std::vector<std::string> region_builder_binders;
-  std::vector<std::string> region_binders;
-  if (op.getNumRegions() > 0) {
-    std::string region_prologue;
-    NameSource gen("_unnamed_region");
-    for (const mlir::tblgen::NamedRegion& region : op.getRegions()) {
-      std::string name = region.name.empty() ? gen.fresh() : sanitizeName(region.name) + "_";
-      region_builder_binders.push_back(name + "Builder");
-      region_binders.push_back(name);
-      builder_arg_types.push_back("RegionBuilderT m ()");
-      region_prologue += llvm::formatv(
-          "{0} <- AST.buildRegion {1}\n  ",
-          region_binders.back(), region_builder_binders.back());
-    }
-    prologue = region_prologue + prologue;
-  }
-
-  builder_arg_types.push_back("");  // To add the arrow before m
-
-  std::optional<std::string> operation =
-      buildOperation(&op.getDef(), false, "builder", "UnknownLocation",
-                     type_exprs, operand_name_exprs, region_binders,
-                     attr_pattern);
-  if (!operation) return;
-
-  const char* kBuilder = R"(
--- | A builder for @{10}@.
-{0} :: ({11:$[, ]}) => MonadBlockBuilder m => {1:$[ -> ]}m {2}
-{0} {3:$[ ]} {4:$[ ]} {5:$[ ]} {6:$[ ]} = do
-  {7}(AST.emitOp ({8})){9}
-)";
-  os << llvm::formatv(kBuilder,
-                      builder_name,                                      // 0
-                      make_range(builder_arg_types),                     // 1
-                      result_type,                                       // 2
-                      make_range(type_binders),                          // 3
-                      make_range(operand_binders),                       // 4
-                      make_range(attr_pattern.binders),                  // 5
-                      make_range(region_builder_binders),                // 6
-                      prologue,                                          // 7
-                      *operation,                                        // 8
-                      continuation,                                      // 9
-                      op.getOperationName(),                             // 10
-                      make_range(attr_pattern.provided_constraints()));  // 11
 }
 
 void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
@@ -689,12 +567,12 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
       op.getTrait("::mlir::OpTrait::SameOperandsAndResultType")) {
     assert(op.getNumVariableLengthResults() == 0);
     pattern_arg_types.push_back("Type");
-    type_binders.push_back("ty");
+    type_binders.push_back("type");
   } else {
     size_t result_count = 0;
     for (int i = 0; i < op.getNumResults(); ++i) {
       pattern_arg_types.push_back("Type");
-      type_binders.push_back(llvm::formatv("ty{0}", result_count++));
+      type_binders.push_back(llvm::formatv("type_{0}", result_count++));
     }
   }
 
@@ -721,24 +599,33 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
                            attr_types.end());
 
   std::optional<std::string> operation = buildOperation(
-      def, true, "pattern", "loc",
+      def, true, "pattern", "location",
       type_binders, operand_binders, {}, attr_pattern);
   if (!operation) return;
 
+//   const char* kPatternExplicitType = R"(
+// -- | A pattern for @{6}@.
+// pattern {0} :: () => ({7:$[, ]}) => {1:$[ -> ]} -> AbstractOperation operand
+// pattern {0} loc {2:$[ ]} {3:$[ ]} {4:$[ ]} = {5}
+// )";
+
+
+  // create vector aggregating arguments by concatenating type_binders, operand_binders and attr_pattern.binders
+  std::vector<std::string> all_binders;
+  all_binders.insert(all_binders.end(), type_binders.begin(), type_binders.end());
+  all_binders.insert(all_binders.end(), operand_binders.begin(), operand_binders.end());
+  all_binders.insert(all_binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());  
+
   const char* kPatternExplicitType = R"(
--- | A pattern for @{6}@.
-pattern {0} :: () => ({7:$[, ]}) => {1:$[ -> ]} -> AbstractOperation operand
-pattern {0} loc {2:$[ ]} {3:$[ ]} {4:$[ ]} = {5}
-)";
+# A function to create operation: {3}.
+function {0}(location, {1:$[, ]})
+  {2}
+end)";
   os << llvm::formatv(kPatternExplicitType,
                       pattern_name,                                      // 0
-                      make_range(pattern_arg_types),                     // 1
-                      make_range(type_binders),                          // 2
-                      make_range(operand_binders),                       // 3
-                      make_range(attr_pattern.binders),                  // 4
-                      *operation,                                        // 5
-                      op.getOperationName(),                             // 6
-                      make_range(attr_pattern.provided_constraints()));  // 7
+                      make_range(all_binders),                           // 1
+                      *operation,                                        // 2
+                      op.getOperationName());                            // 3
 
 }
 
@@ -780,89 +667,18 @@ bool emitOpTableDefs(const llvm::RecordKeeper& recordKeeper,
   attr_print_state attr_pattern_state;
   for (const auto* def : defs) {
     mlir::tblgen::Operator op(*def);
-    if (op.hasDescription()) {
-      os << llvm::formatv("\n-- * {0}\n-- ${0}", stripDialect(op.getOperationName()));
-      os << formatDescription(op);
-      os << "\n";
-    }
+    // if (op.hasDescription()) {
+    //   os << llvm::formatv("\n-- * {0}\n-- ${0}", stripDialect(op.getOperationName()));
+    //   os << formatDescription(op);
+    //   os << "\n";
+    // }
     std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
     if (!attr_pattern) continue;
     attr_pattern->print(os, attr_pattern_state);
     emitPattern(def, *attr_pattern, os);
-    emitBuilderMethod(op, *attr_pattern, os);
   }
+
+  os << "\nend #" << dialect_name << "\n";
 
   return false;
 }
-
-// bool emitTestTableDefs(const llvm::RecordKeeper& recordKeeper,
-//                        llvm::raw_ostream& os) {
-//   std::vector<llvm::Record*> defs = recordKeeper.getAllDerivedDefinitions("Op");
-//   if (defs.empty()) return true;
-
-//   auto dialect_name = getDialectName(defs);
-//   os << "{-# OPTIONS_GHC -Wno-unused-imports #-}\n\n";
-//   const char* module_header = R"(
-// module MLIR.AST.Dialect.Generated.{0}Spec where
-
-// import Prelude (IO, Maybe(..), ($), (<>))
-// import qualified Prelude
-// import Test.Hspec (Spec)
-// import qualified Test.Hspec as Hspec
-// import Test.QuickCheck ((===))
-// import qualified Test.QuickCheck as QC
-
-// import MLIR.AST (pattern NoAttrs)
-// import MLIR.AST.Dialect.{0}
-
-// import MLIR.Test.Generators ()
-
-// main :: IO ()
-// main = Hspec.hspec spec
-
-// spec :: Spec
-// spec = do
-// )";
-//   os << llvm::formatv(module_header, dialect_name);
-//   for (const auto* def : defs) {
-//     mlir::tblgen::Operator op(*def);
-//     std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
-//     if (!attr_pattern) continue;
-//     os << "\n  Hspec.describe \"" << op.getOperationName() << "\" $ do";
-//     const char* bidirectional_test_template = R"(
-//     Hspec.it "has a bidirectional attr pattern" $ do
-//       let wrapUnwrap ({1:$[, ]}) = case ({0} {1:$[ ]}) <> Prelude.mempty of
-//               {0} {2:$[ ]} -> Just ({2:$[, ]})
-//               _ -> Nothing
-//       QC.property $ \args -> wrapUnwrap args === Just args
-// )";
-//     os << llvm::formatv(
-//         bidirectional_test_template, attr_pattern->name,
-//         make_range(attr_pattern->binders),
-//         make_range(map_vector(attr_pattern->binders, [](const std::string& b) {
-//           return b + "_match";
-//         })));
-//     const char* pattern_extensibility_test_template = R"(
-//     Hspec.it "accepts additional attributes" $ do
-//       QC.property $ do
-//         ({1:$[, ]}) <- QC.arbitrary
-//         extraAttrs <- QC.arbitrary
-//         let match = case ({0} {1:$[ ]}) <> extraAttrs of
-//               {0} {2:$[ ]} -> Just ({2:$[, ]})
-//               _ -> Nothing
-//         Prelude.return $ match === Just ({1:$[, ]})
-// )";
-//     os << llvm::formatv(
-//         pattern_extensibility_test_template, attr_pattern->name,
-//         make_range(attr_pattern->binders),
-//         make_range(map_vector(attr_pattern->binders, [](const std::string& b) {
-//           return b + "_match";
-//         })));
-//     // TODO(apaszke): Test attr pattern matches with more attributes.
-//     // TODO(apaszke): Test bidirectionality of op pattern.
-//     // TODO(apaszke): Test op pattern matches with more attributes.
-//     // TODO(apaszke): Test builder output matches op pattern.
-//     // TODO(apaszke): Figure out how to do tests with translation.
-//   }
-//   return false;
-// }
