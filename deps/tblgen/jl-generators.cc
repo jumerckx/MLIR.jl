@@ -340,36 +340,37 @@ class OpAttrPattern {
     std::vector<std::string> lookup_patterns;
     // `[("attr_name", attr_pattern)]` for every non-optional attribute
     std::vector<std::string> singleton_pairs;
+
+    std::vector<std::string> attr_names;
+
     for (size_t i = 0; i < attrs.size(); ++i) {
       const mlir::tblgen::NamedAttribute& nattr = attrs[i];
       const AttrPattern& pattern = *patterns[i];
-      pattern.print(os, optional_attr_defs);
+      // pattern.print(os, optional_attr_defs);
       lookups.push_back(llvm::formatv("M.lookup \"{0}\" m", nattr.name));
       std::string inst_pattern = pattern.match(binders[i]);
       if (nattr.attr.isOptional()) {
-        lookup_patterns.push_back(inst_pattern);
-        singleton_pairs.push_back(llvm::formatv(
-            "(Data.Maybe.maybeToList $ (\"{0}\",) <$> {1})", nattr.name, inst_pattern));
+        // lookup_patterns.push_back(inst_pattern);
+        // singleton_pairs.push_back(llvm::formatv(
+        //     "(Data.Maybe.maybeToList $ (\"{0}\",) <$> {1})", nattr.name, inst_pattern));
+        // attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
       } else {
         lookup_patterns.push_back(llvm::formatv("Just ({0})", inst_pattern));
         singleton_pairs.push_back(
             llvm::formatv("[(\"{0}\", {1})]", nattr.name, inst_pattern));
+        attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
       }
     }
     const char* kAttributePattern = R"(
-pattern {0} :: () => ({6:$[, ]}) => {1:$[ -> ]} -> NamedAttributes
-pattern {0} {2:$[ ]} <- ((\m -> ({3:$[, ]})) -> ({4:$[, ]}))
-  where {0} {2:$[ ]} = M.fromList $ {5:$[ ++ ]}
-)";
+function {0}({2:$[, ]})
+  NamedAttribute.([{1:$[, ]}], [{2:$[, ]}])
+end
+    )";
     os << llvm::formatv(kAttributePattern,
                         name,                                   // 0
-                        make_range(types()),                    // 1
-                        make_range(binders),                    // 2
-                        make_range(lookups),                    // 3
-                        make_range(lookup_patterns),            // 4
-                        make_range(singleton_pairs),            // 5
-                        make_range(provided_constraints()));    // 6
-  }
+                        make_range(attr_names),                 // 1
+                        make_range(binders));                   // 2
+}
 
   std::vector<std::string> types() const {
     return map_vector(patterns, [](const std::unique_ptr<AttrPattern>& p) {
@@ -496,22 +497,13 @@ std::optional<std::string> buildOperation(
                                 make_range(segment_sizes));
   }
 
-  // const char* kPatternExplicitType = R"(Operation
-  //         { opName = "{0}"
-  //         , opLocation = {1}
-  //         , opResultTypes = Explicit {2}
-  //         , opOperands = {3}
-  //         , opRegions = [{4:$[ , ]}]
-  //         , opSuccessors = []
-  //         , opAttributes = ({5}{6}{7:$[ ]}){8}
-  //         })";
   const char* kPatternExplicitType = R"(create_operation(
         "{0}", {1}, 
         results = {2}, 
         operands = {3}
-        owned_regions = [{4:$[ , ]}], 
+        owned_regions = [{4:$[, ]}], 
         successors = [], 
-        attributes = [{5}{6}{7:$[ ]}]{8},
+        attributes = {5}({6:$[, ]}){7},
         result_inference=false
       ))";
   return llvm::formatv(kPatternExplicitType,
@@ -521,9 +513,8 @@ std::optional<std::string> buildOperation(
                        operand_expr,                             // 3
                        make_range(region_exprs),                 // 4
                        attr_pattern.name,                        // 5
-                       attr_pattern.binders.empty() ? "" : " ",  // 6
-                       make_range(attr_pattern.binders),         // 7
-                       extra_attrs)                              // 8
+                       make_range(attr_pattern.binders),         // 6
+                       extra_attrs)                              // 7
       .str();
 }
 
@@ -612,15 +603,16 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
 
   // create vector aggregating arguments by concatenating type_binders, operand_binders and attr_pattern.binders
   std::vector<std::string> all_binders;
+  all_binders.push_back("location");
   all_binders.insert(all_binders.end(), type_binders.begin(), type_binders.end());
   all_binders.insert(all_binders.end(), operand_binders.begin(), operand_binders.end());
   all_binders.insert(all_binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());  
 
   const char* kPatternExplicitType = R"(
-# A function to create operation: {3}.
-function {0}(location, {1:$[, ]})
+function {0}({1:$[, ]})
   {2}
-end)";
+end
+)";
   os << llvm::formatv(kPatternExplicitType,
                       pattern_name,                                      // 0
                       make_range(all_binders),                           // 1
@@ -646,7 +638,7 @@ std::string formatDescription(mlir::tblgen::Operator op) {
   description = std::regex_replace(description, std::regex("```mlir"), "@");
   description = std::regex_replace(description, std::regex("```"), "@");
   description = std::regex_replace(description, std::regex("`"), "@");
-  description = std::regex_replace(description, std::regex("\n"), "\n-- ");
+  description = std::regex_replace(description, std::regex("\n"), "\n# ");
   return description;
 }
 
@@ -668,7 +660,7 @@ bool emitOpTableDefs(const llvm::RecordKeeper& recordKeeper,
   for (const auto* def : defs) {
     mlir::tblgen::Operator op(*def);
     // if (op.hasDescription()) {
-    //   os << llvm::formatv("\n-- * {0}\n-- ${0}", stripDialect(op.getOperationName()));
+    //   os << llvm::formatv("\n# ${0}", stripDialect(op.getOperationName()));
     //   os << formatDescription(op);
     //   os << "\n";
     // }
