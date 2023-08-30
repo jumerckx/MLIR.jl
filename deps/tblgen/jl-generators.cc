@@ -353,7 +353,7 @@ class OpAttrPattern {
         // lookup_patterns.push_back(inst_pattern);
         // singleton_pairs.push_back(llvm::formatv(
         //     "(Data.Maybe.maybeToList $ (\"{0}\",) <$> {1})", nattr.name, inst_pattern));
-        // attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
+        attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
       } else {
         lookup_patterns.push_back(llvm::formatv("Just ({0})", inst_pattern));
         singleton_pairs.push_back(
