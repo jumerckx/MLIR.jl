@@ -332,8 +332,11 @@ class OpAttrPattern {
                          std::move(patterns));
   }
 
-  void print(llvm::raw_ostream& os, attr_print_state& optional_attr_defs) {
-    if (name == "NoAttrs") return;
+  void print(llvm::raw_ostream& os, attr_print_state& optional_attr_defs) const {
+    if (name == "NoAttrs") {
+      os << "attributes = []\n";
+      return;
+    };
     // `M.lookup "attr_name" m` for every attribute
     std::vector<std::string> lookups;
     // Patterns from handlers, but wrapped in "Just (...)" when non-optional
@@ -341,35 +344,38 @@ class OpAttrPattern {
     // `[("attr_name", attr_pattern)]` for every non-optional attribute
     std::vector<std::string> singleton_pairs;
 
-    std::vector<std::string> attr_names;
+    std::vector<std::string> required_attr_names;
+
+    std::vector<std::string> optional_attr_names;
+
+    std::vector<std::string> required_binders;
+
+    std::vector<std::string> optional_binders;
 
     for (size_t i = 0; i < attrs.size(); ++i) {
       const mlir::tblgen::NamedAttribute& nattr = attrs[i];
       const AttrPattern& pattern = *patterns[i];
-      // pattern.print(os, optional_attr_defs);
       lookups.push_back(llvm::formatv("M.lookup \"{0}\" m", nattr.name));
       std::string inst_pattern = pattern.match(binders[i]);
       if (nattr.attr.isOptional()) {
-        // lookup_patterns.push_back(inst_pattern);
-        // singleton_pairs.push_back(llvm::formatv(
-        //     "(Data.Maybe.maybeToList $ (\"{0}\",) <$> {1})", nattr.name, inst_pattern));
-        attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
+        optional_binders.push_back(llvm::formatv("({1} != nothing) && push!(attributes, NamedAttribute(\"{0}\", Attribute({1})))", nattr.name, binders[i]));
+        optional_attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
       } else {
         lookup_patterns.push_back(llvm::formatv("Just ({0})", inst_pattern));
         singleton_pairs.push_back(
             llvm::formatv("[(\"{0}\", {1})]", nattr.name, inst_pattern));
-        attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
+        required_binders.push_back(llvm::formatv("NamedAttribute(\"{0}\", Attribute({1}))", nattr.name, binders[i]));
+        required_attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
       }
     }
     const char* kAttributePattern = R"(
-function {0}({2:$[, ]})
-  NamedAttribute.([{1:$[, ]}], [{2:$[, ]}])
-end
-    )";
+attributes = [{0:$[, ]}]
+{1:$[
+]}
+)";
     os << llvm::formatv(kAttributePattern,
-                        name,                                   // 0
-                        make_range(attr_names),                 // 1
-                        make_range(binders));                   // 2
+                        make_range(required_binders),
+                        make_range(optional_binders));
 }
 
   std::vector<std::string> types() const {
@@ -427,6 +433,7 @@ std::optional<std::string> buildOperation(
     assert(type_exprs.size() == op.getNumResults());
     type_expr = llvm::formatv("[{0:$[, ]}]", make_range(type_exprs));
   } else if (!is_pattern) {
+    // TODO(jumerckx): when does this happen?
     assert(type_exprs.size() == op.getNumResults());
     std::vector<std::string> list_type_exprs;
     for (int i = 0; i < op.getNumResults(); ++i) {
@@ -449,11 +456,13 @@ std::optional<std::string> buildOperation(
   std::string operand_expr;
   assert(operand_exprs.size() == op.getNumOperands());
   if (op.getNumOperands() == 1 && op.getOperand(0).isVariadic()) {
+    //TODO(jumerckx): should probably be operand_expr="[]"
     // Note that this expr already should represent a list
     operand_expr = operand_exprs.front();
   } else if (op.getNumVariableLengthOperands() == 0) {
     operand_expr = llvm::formatv("[{0:$[, ]}]", make_range(operand_exprs));
   } else if (!is_pattern) {
+    // TODO(jumerckx): when does this happen?
     std::vector<std::string> operand_list_exprs;
     for (int i = 0; i < op.getNumOperands(); ++i) {
       auto& operand = op.getOperand(i);
@@ -487,14 +496,6 @@ std::optional<std::string> buildOperation(
         segment_sizes.push_back("1");
       }
     }
-    const char* kOperandSegmentsAttr = R"(
-              <> AST.namedAttribute "operand_segment_sizes"
-                   (DenseElementsAttr (VectorType [{0}] $ IntegerType Unsigned 32) $
-                      DenseUInt32 $ IArray.listArray (1 :: Int, {0}) $ Prelude.fromIntegral <$> [{1:$[, ]}])
-)";
-    extra_attrs = llvm::formatv(kOperandSegmentsAttr,
-                                segment_sizes.size(),
-                                make_range(segment_sizes));
   }
 
   const char* kPatternExplicitType = R"(create_operation(
@@ -503,7 +504,7 @@ std::optional<std::string> buildOperation(
         operands = {3}
         owned_regions = [{4:$[, ]}], 
         successors = [], 
-        attributes = {5}({6:$[, ]}){7},
+        attributes = attributes,
         result_inference=false
       ))";
   return llvm::formatv(kPatternExplicitType,
@@ -513,8 +514,7 @@ std::optional<std::string> buildOperation(
                        operand_expr,                             // 3
                        make_range(region_exprs),                 // 4
                        attr_pattern.name,                        // 5
-                       make_range(attr_pattern.binders),         // 6
-                       extra_attrs)                              // 7
+                       make_range(attr_pattern.binders))        // 6
       .str();
 }
 
@@ -594,13 +594,6 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
       type_binders, operand_binders, {}, attr_pattern);
   if (!operation) return;
 
-//   const char* kPatternExplicitType = R"(
-// -- | A pattern for @{6}@.
-// pattern {0} :: () => ({7:$[, ]}) => {1:$[ -> ]} -> AbstractOperation operand
-// pattern {0} loc {2:$[ ]} {3:$[ ]} {4:$[ ]} = {5}
-// )";
-
-
   // create vector aggregating arguments by concatenating type_binders, operand_binders and attr_pattern.binders
   std::vector<std::string> all_binders;
   all_binders.push_back("location");
@@ -608,8 +601,14 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   all_binders.insert(all_binders.end(), operand_binders.begin(), operand_binders.end());
   all_binders.insert(all_binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());  
 
+  std::string attribute_definitions;
+  llvm::raw_string_ostream stream(attribute_definitions);
+  attr_print_state attr_pattern_state;
+  attr_pattern.print(stream, attr_pattern_state);
+
   const char* kPatternExplicitType = R"(
 function {0}({1:$[, ]})
+  {4}
   {2}
 end
 )";
@@ -617,7 +616,8 @@ end
                       pattern_name,                                      // 0
                       make_range(all_binders),                           // 1
                       *operation,                                        // 2
-                      op.getOperationName());                            // 3
+                      op.getOperationName(),                             // 3
+                      attribute_definitions);                            // 4
 
 }
 
@@ -666,7 +666,6 @@ bool emitOpTableDefs(const llvm::RecordKeeper& recordKeeper,
     // }
     std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
     if (!attr_pattern) continue;
-    attr_pattern->print(os, attr_pattern_state);
     emitPattern(def, *attr_pattern, os);
   }
 
