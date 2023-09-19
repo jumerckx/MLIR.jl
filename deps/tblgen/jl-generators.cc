@@ -135,7 +135,7 @@ class SimpleAttrPattern : public AttrPattern {
   }
 
   std::string match(std::string name) const override { return llvm::formatv(_pattern, name); }
-  std::string type() const override { return _type; }
+  std::string type() const override { return "Union{NamedAttribute, " + _type + "}"; }
   const std::vector<std::string>& provided_constraints() const override { return _provided_constraints; }
   const std::vector<std::string>& type_vars() const { return _type_vars; }
   const std::vector<const char*>& type_var_defaults() const { return _type_var_defaults; }
@@ -156,7 +156,7 @@ class OptionalAttrPattern : public AttrPattern {
     : base(std::move(base)), attr_kind(attr_kind) {}
 
   std::string type() const override {
-    return "Maybe " + base.type();
+    return "Union{Nothing, " + base.type() + "}";
   }
   std::string match(std::string name) const override {
     return llvm::formatv("Optional{0} {1}", attr_kind, name);
@@ -165,42 +165,6 @@ class OptionalAttrPattern : public AttrPattern {
 
   void print(llvm::raw_ostream& os,
              attr_print_state& optional_attr_defs) const override {
-    if (!optional_attr_defs.contains(attr_kind)) {
-      if (base.provided_constraints().empty()) {
-        const char* kOptionalHandler = R"(
-pattern Optional{0} :: Maybe {1} -> Maybe Attribute
-pattern Optional{0} x <- ((\case Just ({2}) -> Just y; Nothing -> Nothing) -> x)
-  where Optional{0} x = case x of Just y -> Just ({2}); Nothing -> Nothing
-)";
-        os << llvm::formatv(kOptionalHandler, attr_kind, base.type(),
-                            base.match("y"));
-      } else {
-        const char *kOptionalHandlerConstr = R"(
-data Maybe{0}Adapter = forall {4:$[ ]}. ({3:$[, ]}) => AdaptMaybe{0} (Maybe ({1}))
-
-unwrapMaybe{0} :: Maybe Attribute -> Maybe{0}Adapter
-unwrapMaybe{0} = \case
-  Just ({2}) -> AdaptMaybe{0} (Just y)
-  _ -> AdaptMaybe{0} {5:[]}Nothing
-
-pattern Optional{0} :: () => ({3:$[, ]}) => Maybe {1} -> Maybe Attribute
-pattern Optional{0} x <- (unwrapMaybe{0} -> AdaptMaybe{0} x)
-  where Optional{0} x = case x of Just y -> Just ({2}); Nothing  -> Nothing
-)";
-        std::vector<std::string> default_apps;
-        for (const char* d : base.type_var_defaults()) {
-          default_apps.push_back("@" + std::string(d) + " ");
-        }
-        os << llvm::formatv(kOptionalHandlerConstr,
-                            attr_kind,                                // 0
-                            base.type(),                              // 1
-                            base.match("y"),                          // 2
-                            make_range(base.provided_constraints()),  // 3
-                            make_range(base.type_vars()),             // 4
-                            make_range(default_apps));                // 5
-      }
-      optional_attr_defs.insert(attr_kind);
-    }
   }
 
  private:
@@ -212,24 +176,32 @@ using attr_pattern_map = llvm::StringMap<AttrPatternTemplate>;
 
 const attr_pattern_map& getAttrPatternTemplates() {
   static const attr_pattern_map* kAttrHandlers = new attr_pattern_map{
-      {"AnyAttr", {"{0}", "Attribute", {}, {}}},
-      {"AffineMapArrayAttr", {"PatternUtil.AffineMapArrayAttr {0}", "[Affine.Map]", {}, {}}},
-      {"AffineMapAttr", {"AffineMapAttr {0}", "Affine.Map", {}, {}}},
-      {"ArrayAttr", {"ArrayAttr {0}", "[Attribute]", {}, {}}},
-      {"BoolAttr", {"BoolAttr {0}", "Bool", {}, {}}},
-      {"DenseI32ArrayAttr", {"PatternUtil.I32ArrayAttr {0}", "[Int]", {}, {}}},
-      {"DictionaryAttr", {"DictionaryAttr {0}", "(M.Map Name Attribute)", {}, {}}},
-      {"F32Attr", {"FloatAttr Float32Type {0}", "Double", {}, {}}},
-      {"F64Attr", {"FloatAttr Float64Type {0}", "Double", {}, {}}},
-      {"I32Attr", {"IntegerAttr (IntegerType Signless 32) {0}", "Int", {}, {}}},
-      {"I64Attr", {"IntegerAttr (IntegerType Signless 64) {0}", "Int", {}, {}}},
-      {"I64ArrayAttr", {"PatternUtil.I64ArrayAttr {0}", "[Int]", {}, {}}},
-      {"I64ElementsAttr", {"DenseElementsAttr (IntegerType Signless 64) (DenseInt64 {0})",
-                           "(AST.IStorableArray {0} Int64)", {"Ix {0}", "Show {0}"}, {"PatternUtil.DummyIx"}}},
-      {"IndexAttr", {"IntegerAttr IndexType {0}", "Int", {}, {}}},
-      {"StrAttr", {"StringAttr {0}", "BS.ByteString", {}, {}}},
-      // TODO(jpienaar): We could specialize this one more to query Type.
-      {"TypedAttrInterface", {"{0}", "Attribute", {}, {}}},
+    {"BoolAttr", {"", "Bool", {}, {}}},
+    {"DenseI32ArrayAttr", {"", "Vector{Float32}", {}, {}}},
+    {"F32Attr", {"", "Float32", {}, {}}},
+    {"F64Attr", {"", "Float64", {}, {}}},
+    {"I32Attr", {"", "Int32", {}, {}}},
+    {"I64Attr", {"", "Int64", {}, {}}},
+    {"I64ArrayAttr", {"", "Vector{Int64}", {}, {}}},
+    {"StrAttr", {"", "String", {}, {}}},
+      // {"AnyAttr", {"{0}", "Attribute", {}, {}}},
+      // {"AffineMapArrayAttr", {"PatternUtil.AffineMapArrayAttr {0}", "[Affine.Map]", {}, {}}},
+      // {"AffineMapAttr", {"AffineMapAttr {0}", "Affine.Map", {}, {}}},
+      // {"ArrayAttr", {"ArrayAttr {0}", "[Attribute]", {}, {}}},
+      // {"BoolAttr", {"BoolAttr {0}", "Bool", {}, {}}},
+      // {"DenseI32ArrayAttr", {"PatternUtil.I32ArrayAttr {0}", "[Int]", {}, {}}},
+      // {"DictionaryAttr", {"DictionaryAttr {0}", "(M.Map Name Attribute)", {}, {}}},
+      // {"F32Attr", {"FloatAttr Float32Type {0}", "Double", {}, {}}},
+      // {"F64Attr", {"FloatAttr Float64Type {0}", "Double", {}, {}}},
+      // {"I32Attr", {"IntegerAttr (IntegerType Signless 32) {0}", "Int", {}, {}}},
+      // {"I64Attr", {"IntegerAttr (IntegerType Signless 64) {0}", "Int", {}, {}}},
+      // {"I64ArrayAttr", {"PatternUtil.I64ArrayAttr {0}", "[Int]", {}, {}}},
+      // {"I64ElementsAttr", {"DenseElementsAttr (IntegerType Signless 64) (DenseInt64 {0})",
+      //                      "(AST.IStorableArray {0} Int64)", {"Ix {0}", "Show {0}"}, {"PatternUtil.DummyIx"}}},
+      // {"IndexAttr", {"IntegerAttr IndexType {0}", "Int", {}, {}}},
+      // {"StrAttr", {"StringAttr {0}", "BS.ByteString", {}, {}}},
+      // // TODO(jpienaar): We could specialize this one more to query Type.
+      // {"TypedAttrInterface", {"{0}", "Attribute", {}, {}}},
   };
   return *kAttrHandlers;
 }
@@ -238,13 +210,23 @@ const attr_pattern_map& getAttrPatternTemplates() {
 std::unique_ptr<AttrPattern> tryGetAttrPattern(
     const mlir::tblgen::NamedAttribute& nattr, NameSource& gen) {
   llvm::StringRef attr_kind = nattr.attr.getAttrDefName();
-  if (getAttrPatternTemplates().count(attr_kind) != 1) return nullptr;
-  const AttrPatternTemplate& tmpl = getAttrPatternTemplates().lookup(attr_kind);
+  const AttrPatternTemplate* tmpl; // Declare tmpl as a pointer
+
+  if (getAttrPatternTemplates().count(attr_kind) != 1) {
+      static const AttrPatternTemplate defaultTemplate = {"", "Attribute", {}, {}};
+      tmpl = &defaultTemplate;
+  } else {
+      const AttrPatternTemplate& attrTemplate = getAttrPatternTemplates().lookup(attr_kind);
+      tmpl = &attrTemplate;
+  }
+
+  // if (getAttrPatternTemplates().count(attr_kind) != 1) return nullptr;
+  // const AttrPatternTemplate& tmpl = getAttrPatternTemplates().lookup(attr_kind);
   if (!nattr.attr.isOptional()) {
-    return std::make_unique<SimpleAttrPattern>(tmpl, gen);
+    return std::make_unique<SimpleAttrPattern>(*tmpl, gen);
   } else {
     auto pat = std::make_unique<OptionalAttrPattern>(
-        attr_kind, SimpleAttrPattern(tmpl, gen));
+        attr_kind, SimpleAttrPattern(*tmpl, gen));
     return pat;
   }
 }
@@ -307,21 +289,21 @@ class OpAttrPattern {
       if (named_attr.attr.isDerivedAttr()) continue;
 
       auto pattern = tryGetAttrPattern(named_attr, gen);
-      if (!pattern) {
-        if (named_attr.attr.hasDefaultValue()) {
-          warn(op, llvm::formatv("unsupported attr {0} (but has default value)",
-                                 named_attr.attr.getAttrDefName()));
-          continue;
-        }
-        if (named_attr.attr.isOptional()) {
-          warn(op, llvm::formatv("unsupported attr {0} (but is optional)",
-                                 named_attr.attr.getAttrDefName()));
-          continue;
-        }
-        warn(op, llvm::formatv("unsupported attr ({0})",
-                               named_attr.attr.getAttrDefName()));
-        return std::nullopt;
-      }
+      // if (!pattern) {
+      //   if (named_attr.attr.hasDefaultValue()) {
+      //     warn(op, llvm::formatv("unsupported attr {0} (but has default value)",
+      //                            named_attr.attr.getAttrDefName()));
+      //     continue;
+      //   }
+      //   if (named_attr.attr.isOptional()) {
+      //     warn(op, llvm::formatv("unsupported attr {0} (but is optional)",
+      //                            named_attr.attr.getAttrDefName()));
+      //     continue;
+      //   }
+      //   warn(op, llvm::formatv("unsupported attr ({0})",
+      //                          named_attr.attr.getAttrDefName()));
+      //   return std::nullopt;
+      // }
       binders.push_back(sanitizeName(named_attr.name) + "_");
       attrs.push_back(named_attr);
       patterns.push_back(std::move(pattern));
@@ -337,45 +319,28 @@ class OpAttrPattern {
       os << "attributes = []\n";
       return;
     };
-    // `M.lookup "attr_name" m` for every attribute
-    std::vector<std::string> lookups;
-    // Patterns from handlers, but wrapped in "Just (...)" when non-optional
-    std::vector<std::string> lookup_patterns;
-    // `[("attr_name", attr_pattern)]` for every non-optional attribute
-    std::vector<std::string> singleton_pairs;
+    std::vector<std::string> required_attr_creator;
 
-    std::vector<std::string> required_attr_names;
-
-    std::vector<std::string> optional_attr_names;
-
-    std::vector<std::string> required_binders;
-
-    std::vector<std::string> optional_binders;
+    std::vector<std::string> optional_attr_creator;
 
     for (size_t i = 0; i < attrs.size(); ++i) {
       const mlir::tblgen::NamedAttribute& nattr = attrs[i];
       const AttrPattern& pattern = *patterns[i];
-      lookups.push_back(llvm::formatv("M.lookup \"{0}\" m", nattr.name));
       std::string inst_pattern = pattern.match(binders[i]);
       if (nattr.attr.isOptional()) {
-        optional_binders.push_back(llvm::formatv("({1} != nothing) && push!(attributes, NamedAttribute(\"{0}\", Attribute({1})))", nattr.name, binders[i]));
-        optional_attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
+        optional_attr_creator.push_back(llvm::formatv("({1} != nothing) && push!(attributes, make_named_attribute(\"{0}\", {1}))", nattr.name, binders[i]));
       } else {
-        lookup_patterns.push_back(llvm::formatv("Just ({0})", inst_pattern));
-        singleton_pairs.push_back(
-            llvm::formatv("[(\"{0}\", {1})]", nattr.name, inst_pattern));
-        required_binders.push_back(llvm::formatv("NamedAttribute(\"{0}\", Attribute({1}))", nattr.name, binders[i]));
-        required_attr_names.push_back(llvm::formatv("\"{0}\"", nattr.name));
+        required_attr_creator.push_back(llvm::formatv("make_named_attribute(\"{0}\", {1})", nattr.name, binders[i]));
       }
     }
     const char* kAttributePattern = R"(
-attributes = [{0:$[, ]}]
-{1:$[
-]}
+  attributes = [{0:$[, ]}]
+  {1:$[
+  ]}
 )";
     os << llvm::formatv(kAttributePattern,
-                        make_range(required_binders),
-                        make_range(optional_binders));
+                        make_range(required_attr_creator),
+                        make_range(optional_attr_creator));
 }
 
   std::vector<std::string> types() const {
@@ -501,7 +466,7 @@ std::optional<std::string> buildOperation(
   const char* kPatternExplicitType = R"(create_operation(
         "{0}", {1}, 
         results = {2}, 
-        operands = {3}
+        operands = {3},
         owned_regions = [{4:$[, ]}], 
         successors = [], 
         attributes = attributes,
@@ -553,17 +518,17 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   std::vector<std::string> pattern_arg_types{"Location"};
 
   // Prepare results
-  std::vector<std::string> type_binders;
+  std::vector<std::string> result_binders;
   if (op.getNumResults() > 0 &&
       op.getTrait("::mlir::OpTrait::SameOperandsAndResultType")) {
     assert(op.getNumVariableLengthResults() == 0);
-    pattern_arg_types.push_back("Type");
-    type_binders.push_back("type");
+    pattern_arg_types.push_back("MLIRType");
+    result_binders.push_back("type");
   } else {
     size_t result_count = 0;
     for (int i = 0; i < op.getNumResults(); ++i) {
-      pattern_arg_types.push_back("Type");
-      type_binders.push_back(llvm::formatv("type_{0}", result_count++));
+      pattern_arg_types.push_back("MLIRType");
+      result_binders.push_back(llvm::formatv("type_{0}", result_count++));
     }
   }
 
@@ -571,7 +536,7 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   std::vector<std::string> operand_binders;
   if (op.getNumOperands() == 1 && op.getOperand(0).isVariadic()) {
     // Single variadic arg is easy to handle
-    pattern_arg_types.push_back("[operand]");
+    pattern_arg_types.push_back("Vector{Value}");
     operand_binders.push_back(sanitizeName(op.getOperand(0).name, 0) + "_");
   } else {
     // Non-variadic case
@@ -579,7 +544,7 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
       const auto& operand = op.getOperand(i);
       if (operand.isVariableLength())
         return fail("unsupported variable length operand");
-      pattern_arg_types.push_back("operand");
+      pattern_arg_types.push_back("Value");
       operand_binders.push_back(sanitizeName(operand.name, i) + "_");
     }
   }
@@ -591,16 +556,21 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
 
   std::optional<std::string> operation = buildOperation(
       def, true, "pattern", "location",
-      type_binders, operand_binders, {}, attr_pattern);
+      result_binders, operand_binders, {}, attr_pattern);
   if (!operation) return;
 
-  // create vector aggregating arguments by concatenating type_binders, operand_binders and attr_pattern.binders
-  std::vector<std::string> all_binders;
-  all_binders.push_back("location");
-  all_binders.insert(all_binders.end(), type_binders.begin(), type_binders.end());
-  all_binders.insert(all_binders.end(), operand_binders.begin(), operand_binders.end());
-  all_binders.insert(all_binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());  
+  std::vector<std::string> binders;
 
+  binders.push_back("location");
+  binders.insert(binders.end(), result_binders.begin(), result_binders.end());
+  binders.insert(binders.end(), operand_binders.begin(), operand_binders.end());
+  binders.insert(binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());
+
+  std::vector<std::string> all_args;
+  for (size_t i = 0; i < binders.size(); ++i) {
+    all_args.push_back(llvm::formatv("{0}::{1}", binders[i], pattern_arg_types[i]));
+  }
+  
   std::string attribute_definitions;
   llvm::raw_string_ostream stream(attribute_definitions);
   attr_print_state attr_pattern_state;
@@ -608,16 +578,15 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
 
   const char* kPatternExplicitType = R"(
 function {0}({1:$[, ]})
-  {4}
+  {3}
   {2}
 end
 )";
   os << llvm::formatv(kPatternExplicitType,
                       pattern_name,                                      // 0
-                      make_range(all_binders),                           // 1
+                      make_range(all_args),                           // 1
                       *operation,                                        // 2
-                      op.getOperationName(),                             // 3
-                      attribute_definitions);                            // 4
+                      attribute_definitions);                            // 3
 
 }
 
@@ -654,6 +623,14 @@ bool emitOpTableDefs(const llvm::RecordKeeper& recordKeeper,
   auto dialect_name = getDialectName(defs);
   os << "module " << dialect_name << "\n";
   os << R"(
+make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
+
+make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
+
+function make_named_attribute(name, val::NamedAttribute)
+  assert(true) # TODO(jm): check whether name of attribute is correct, getting the name might need to be added to IR.jl?
+  return val
+end
 )";
 
   attr_print_state attr_pattern_state;
