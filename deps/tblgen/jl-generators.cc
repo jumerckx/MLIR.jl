@@ -268,19 +268,22 @@ std::string getDialectName(llvm::ArrayRef<llvm::Record*> op_defs) {
 
 class OpAttrPattern {
   OpAttrPattern(std::string name, std::vector<std::string> binders,
+                std::vector<std::string> default_values,
                 std::vector<mlir::tblgen::NamedAttribute> attrs,
                 std::vector<std::unique_ptr<AttrPattern>> patterns)
       : name(std::move(name)),
         binders(std::move(binders)),
+        default_values(std::move(default_values)),
         attrs(std::move(attrs)),
         patterns(std::move(patterns)) {}
 
  public:
   static std::optional<OpAttrPattern> buildFor(mlir::tblgen::Operator& op) {
-    if (op.getNumAttributes() == 0) return OpAttrPattern("NoAttrs", {}, {}, {});
+    if (op.getNumAttributes() == 0) return OpAttrPattern("NoAttrs", {}, {}, {}, {});
 
     NameSource gen("a");
     std::vector<std::string> binders;
+    std::vector<std::string> default_values;
     std::vector<mlir::tblgen::NamedAttribute> attrs;
     std::vector<std::unique_ptr<AttrPattern>> patterns;
     for (const auto& named_attr : op.getAttributes()) {
@@ -289,36 +292,25 @@ class OpAttrPattern {
       if (named_attr.attr.isDerivedAttr()) continue;
 
       auto pattern = tryGetAttrPattern(named_attr, gen);
-      // if (!pattern) {
-      //   if (named_attr.attr.hasDefaultValue()) {
-      //     warn(op, llvm::formatv("unsupported attr {0} (but has default value)",
-      //                            named_attr.attr.getAttrDefName()));
-      //     continue;
-      //   }
-      //   if (named_attr.attr.isOptional()) {
-      //     warn(op, llvm::formatv("unsupported attr {0} (but is optional)",
-      //                            named_attr.attr.getAttrDefName()));
-      //     continue;
-      //   }
-      //   warn(op, llvm::formatv("unsupported attr ({0})",
-      //                          named_attr.attr.getAttrDefName()));
-      //   return std::nullopt;
-      // }
       binders.push_back(sanitizeName(named_attr.name) + "_");
+
+      if (named_attr.attr.isOptional()) {
+        default_values.push_back("=nothing");
+      }
+      else {
+        default_values.push_back("");
+      }
+
       attrs.push_back(named_attr);
       patterns.push_back(std::move(pattern));
     }
-    if (binders.empty()) return OpAttrPattern("NoAttrs", {}, {}, {});
+    if (binders.empty()) return OpAttrPattern("NoAttrs", {}, {}, {}, {});
     std::string name = "Internal" + op.getCppClassName().str() + "Attributes";
-    return OpAttrPattern(std::move(name), std::move(binders), std::move(attrs),
-                         std::move(patterns));
+    return OpAttrPattern(std::move(name), std::move(binders), std::move(default_values),
+                        std::move(attrs), std::move(patterns));
   }
 
   void print(llvm::raw_ostream& os, attr_print_state& optional_attr_defs) const {
-    if (name == "NoAttrs") {
-      os << "attributes = []\n";
-      return;
-    };
     std::vector<std::string> required_attr_creator;
 
     std::vector<std::string> optional_attr_creator;
@@ -333,14 +325,14 @@ class OpAttrPattern {
         required_attr_creator.push_back(llvm::formatv("make_named_attribute(\"{0}\", {1})", nattr.name, binders[i]));
       }
     }
-    const char* kAttributePattern = R"(
-  attributes = [{0:$[, ]}]
+    const char* kAttributePattern = R"(attributes = [{0:$[, ]}]{2}
   {1:$[
-  ]}
-)";
+  ]
+  }{2})";
     os << llvm::formatv(kAttributePattern,
                         make_range(required_attr_creator),
-                        make_range(optional_attr_creator));
+                        make_range(optional_attr_creator),
+                        (optional_attr_creator.empty() ? "" : "\n"));
 }
 
   std::vector<std::string> types() const {
@@ -360,6 +352,7 @@ class OpAttrPattern {
 
   std::string name;
   std::vector<std::string> binders;
+  std::vector<std::string> default_values;
 
  private:
   std::vector<mlir::tblgen::NamedAttribute> attrs;
@@ -560,15 +553,22 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   if (!operation) return;
 
   std::vector<std::string> binders;
+  std::vector<std::string> default_values;
 
   binders.push_back("location");
   binders.insert(binders.end(), result_binders.begin(), result_binders.end());
   binders.insert(binders.end(), operand_binders.begin(), operand_binders.end());
   binders.insert(binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());
 
+  // fill default values with empty strings except for attributes
+  default_values.push_back("");
+  default_values.insert(default_values.end(), result_binders.size(), "");
+  default_values.insert(default_values.end(), operand_binders.size(), "");
+  default_values.insert(default_values.end(), attr_pattern.default_values.begin(), attr_pattern.default_values.end());
+
   std::vector<std::string> all_args;
   for (size_t i = 0; i < binders.size(); ++i) {
-    all_args.push_back(llvm::formatv("{0}::{1}", binders[i], pattern_arg_types[i]));
+    all_args.push_back(llvm::formatv("{0}{1}::{2}", binders[i], default_values[i], pattern_arg_types[i]));
   }
   
   std::string attribute_definitions;
