@@ -16,6 +16,7 @@
 #include <functional>
 #include <regex>
 #include <optional>
+#include <iostream>
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
@@ -592,7 +593,7 @@ end
 
 std::string formatDescription(mlir::tblgen::Operator op) {
   std::string description;
-  description = "\n" + op.getDescription().str();
+  description = op.getDescription().str();
   size_t pos = 0;
   while (description[pos] == '\n') ++pos;
   size_t leading_spaces = 0;
@@ -602,12 +603,7 @@ std::string formatDescription(mlir::tblgen::Operator op) {
     for (size_t i = 0; i < leading_spaces; ++i) leading_spaces_str += "[ ]";
     description = std::regex_replace(description, std::regex("\n" + leading_spaces_str), "\n");
   }
-  description = std::regex_replace(description, std::regex("\\[(.*)\\]\\(.*\\)"), "$1");
-  description = std::regex_replace(description, std::regex("(['\"@<$#])"), "\\$1");
-  description = std::regex_replace(description, std::regex("```mlir"), "@");
-  description = std::regex_replace(description, std::regex("```"), "@");
-  description = std::regex_replace(description, std::regex("`"), "@");
-  description = std::regex_replace(description, std::regex("\n"), "\n# ");
+  description = std::regex_replace(description, std::regex("(['\"$#])"), "\\$1");
   return description;
 }
 
@@ -635,15 +631,17 @@ end
 
   attr_print_state attr_pattern_state;
   for (const auto* def : defs) {
+    os << "\n";
     mlir::tblgen::Operator op(*def);
-    // if (op.hasDescription()) {
-    //   os << llvm::formatv("\n# ${0}", stripDialect(op.getOperationName()));
-    //   os << formatDescription(op);
-    //   os << "\n";
-    // }
+    if (op.hasDescription()) {
+      os << "\"\"\"\n" << stripDialect(op.getOperationName()) << "\n";
+      os << formatDescription(op);
+      os << "\n\"\"\"";
+    }
     std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
     if (!attr_pattern) continue;
     emitPattern(def, *attr_pattern, os);
+    os << "\n";
   }
 
   os << "\nend #" << dialect_name << "\n";
