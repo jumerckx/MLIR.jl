@@ -375,7 +375,7 @@ std::optional<std::string> buildOperation(
 
   // Skip currently unsupported cases
   if (op.getNumVariadicRegions() != 0) return fail("variadic regions");
-  if (op.getNumSuccessors() != 0) return fail("successors");
+  // if (op.getNumSuccessors() != 0) return fail("successors");
 
   // Prepare results
   std::string type_expr;
@@ -501,7 +501,7 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   // Skip currently unsupported cases
   if (op.getNumVariableLengthResults() != 0) return fail("variadic results");
   if (op.getNumRegions() != 0) return fail("regions");
-  if (op.getNumSuccessors() != 0) return fail("successors");
+  // if (op.getNumSuccessors() != 0) return fail("successors");
   if (!def->getName().endswith("Op")) return fail("unsupported name format");
   if (!def->getName().startswith(StripOpPrefix)) return fail("missing prefix");
 
@@ -543,6 +543,17 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
     }
   }
 
+  // Prepare successors
+  std::vector<std::string> successor_binders;
+  for (int i = 0; i < op.getNumSuccessors(); ++i) {
+    const auto& successor = op.getSuccessor(i);
+    if (successor.isVariadic()) return fail("unsupported variadic successor");
+    else {
+      pattern_arg_types.push_back("Block");
+      successor_binders.push_back(sanitizeName(op.getSuccessor(i).name, i) + "_");
+    }
+  }
+
   // Prepare attribute pattern
   auto attr_types = attr_pattern.types();
   pattern_arg_types.insert(pattern_arg_types.end(), attr_types.begin(),
@@ -559,12 +570,14 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   binders.push_back("location");
   binders.insert(binders.end(), result_binders.begin(), result_binders.end());
   binders.insert(binders.end(), operand_binders.begin(), operand_binders.end());
+  binders.insert(binders.end(), successor_binders.begin(), successor_binders.end());
   binders.insert(binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());
 
   // fill default values with empty strings except for attributes
   default_values.push_back("");
   default_values.insert(default_values.end(), result_binders.size(), "");
   default_values.insert(default_values.end(), operand_binders.size(), "");
+  default_values.insert(default_values.end(), successor_binders.size(), "");
   default_values.insert(default_values.end(), attr_pattern.default_values.begin(), attr_pattern.default_values.end());
 
   std::vector<std::string> all_args;
