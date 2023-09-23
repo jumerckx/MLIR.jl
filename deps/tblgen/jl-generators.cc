@@ -253,15 +253,15 @@ namespace
 
     // if (getAttrPatternTemplates().count(attr_kind) != 1) return nullptr;
     // const AttrPatternTemplate& tmpl = getAttrPatternTemplates().lookup(attr_kind);
-    if (!nattr.attr.isOptional())
-    {
-      return std::make_unique<SimpleAttrPattern>(*tmpl, gen);
-    }
-    else
+    if (nattr.attr.isOptional() || nattr.attr.hasDefaultValue())
     {
       auto pat = std::make_unique<OptionalAttrPattern>(
           attr_kind, SimpleAttrPattern(*tmpl, gen));
       return pat;
+    }
+    else
+    {
+      return std::make_unique<SimpleAttrPattern>(*tmpl, gen);
     }
   }
 
@@ -321,12 +321,12 @@ namespace
   public:
     static std::optional<ResultsGenerator> buildFor(mlir::tblgen::Operator &op)
     {
-      if (op.getNumOperands() == 0)
+      if (op.getNumResults() == 0)
         return ResultsGenerator({}, {}, {});
 
       std::vector<std::string> binders;
       std::vector<std::string> default_values;
-      std::vector<mlir::tblgen::NamedTypeConstraint> operands;
+      std::vector<mlir::tblgen::NamedTypeConstraint> results;
       for (int i = 0; i < op.getNumResults(); ++i)
       {
         const auto &named_result = op.getResult(i);
@@ -341,12 +341,12 @@ namespace
           default_values.push_back("");
         }
 
-        operands.push_back(named_result);
+        results.push_back(named_result);
       }
       if (binders.empty())
         return ResultsGenerator({}, {}, {});
       return ResultsGenerator(std::move(binders), std::move(default_values),
-                              std::move(operands));
+                              std::move(results));
     }
 
     void print(llvm::raw_ostream &os) const
@@ -445,7 +445,7 @@ namespace
         const auto postfix = noperand.isVariadic() ? "..." : "";
         if (noperand.isOptional())
         {
-          optional_operand_creator.push_back(llvm::formatv("({1} != nothing) && push!(operands, {0}{1})", binders[i], postfix));
+          optional_operand_creator.push_back(llvm::formatv("({0} != nothing) && push!(operands, {0}{1})", binders[i], postfix));
         }
         else
         {
@@ -588,7 +588,7 @@ namespace
         auto pattern = tryGetAttrPattern(named_attr, gen);
         binders.push_back(sanitizeName(named_attr.name) + "_");
 
-        if (named_attr.attr.isOptional())
+        if (named_attr.attr.isOptional() || named_attr.attr.hasDefaultValue())
         {
           default_values.push_back("=nothing");
         }
@@ -618,7 +618,7 @@ namespace
         const mlir::tblgen::NamedAttribute &nattr = attrs[i];
         const AttrPattern &pattern = *patterns[i];
         std::string inst_pattern = pattern.match(binders[i]);
-        if (nattr.attr.isOptional())
+        if (nattr.attr.isOptional() || nattr.attr.hasDefaultValue())
         {
           optional_attr_creator.push_back(llvm::formatv("({1} != nothing) && push!(attributes, make_named_attribute(\"{0}\", {1}))", nattr.name, binders[i]));
         }
@@ -816,7 +816,7 @@ namespace
     }
 
     const char *kPatternExplicitType = R"(
-function {0}({1:$[, ]})
+function {0}(; {1:$[, ]})
   {3}
   {2}
 end
@@ -845,7 +845,7 @@ end
         leading_spaces_str += "[ ]";
       description = std::regex_replace(description, std::regex("\n" + leading_spaces_str), "\n");
     }
-    description = std::regex_replace(description, std::regex("(['\"$#])"), "\\$1");
+    description = std::regex_replace(description, std::regex("(['\"$])"), "\\$1");
     return description;
   }
 
@@ -862,6 +862,8 @@ bool emitOpTableDefs(const llvm::RecordKeeper &recordKeeper,
   auto dialect_name = getDialectName(defs);
   os << "module " << dialect_name << "\n";
   os << R"(
+import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Attribute, create_operation
+
 make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
 
 make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
