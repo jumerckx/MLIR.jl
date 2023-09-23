@@ -309,28 +309,28 @@ namespace
     return dialect_name;
   }
 
-  class OpOperandsGenerator
+  class OperandsGenerator
   {
-    OpOperandsGenerator(std::vector<std::string> binders,
-                        std::vector<std::string> default_values,
-                        std::vector<mlir::tblgen::NamedTypeConstraint> operands)
+    OperandsGenerator(std::vector<std::string> binders,
+                      std::vector<std::string> default_values,
+                      std::vector<mlir::tblgen::NamedTypeConstraint> operands)
         : binders(std::move(binders)),
           default_values(std::move(default_values)),
           operands(std::move(operands)) {}
 
   public:
-    static std::optional<OpOperandsGenerator> buildFor(mlir::tblgen::Operator &op)
+    static std::optional<OperandsGenerator> buildFor(mlir::tblgen::Operator &op)
     {
       if (op.getNumOperands() == 0)
-        return OpOperandsGenerator({}, {}, {});
+        return OperandsGenerator({}, {}, {});
 
-      NameSource gen("o");
       std::vector<std::string> binders;
       std::vector<std::string> default_values;
       std::vector<mlir::tblgen::NamedTypeConstraint> operands;
-      for (const auto &named_operand : op.getOperands())
+      for (int i = 0; i < op.getNumOperands(); ++i)
       {
-        binders.push_back(sanitizeName(named_operand.name) + "_");
+        const auto &named_operand = op.getOperand(i);
+        binders.push_back(sanitizeName(named_operand.name, i) + "_");
 
         if (named_operand.isOptional())
         {
@@ -344,9 +344,9 @@ namespace
         operands.push_back(named_operand);
       }
       if (binders.empty())
-        return OpOperandsGenerator({}, {}, {});
-      return OpOperandsGenerator(std::move(binders), std::move(default_values),
-                                 std::move(operands));
+        return OperandsGenerator({}, {}, {});
+      return OperandsGenerator(std::move(binders), std::move(default_values),
+                               std::move(operands));
     }
 
     void print(llvm::raw_ostream &os) const
@@ -393,12 +393,66 @@ namespace
     std::vector<mlir::tblgen::NamedTypeConstraint> operands;
   };
 
-  class OpAttrPattern
+  class SuccessorsGenerator
   {
-    OpAttrPattern(std::string name, std::vector<std::string> binders,
-                  std::vector<std::string> default_values,
-                  std::vector<mlir::tblgen::NamedAttribute> attrs,
-                  std::vector<std::unique_ptr<AttrPattern>> patterns)
+    SuccessorsGenerator(std::vector<std::string> binders,
+                        std::vector<mlir::tblgen::NamedSuccessor> successors)
+        : binders(std::move(binders)),
+          successors(std::move(successors)) {}
+
+  public:
+    static std::optional<SuccessorsGenerator> buildFor(mlir::tblgen::Operator &op)
+    {
+      if (op.getNumSuccessors() == 0)
+        return SuccessorsGenerator({}, {});
+
+      std::vector<std::string> binders;
+      std::vector<std::string> default_values;
+      std::vector<mlir::tblgen::NamedSuccessor> successors;
+      for (const auto &successor : op.getSuccessors())
+      {
+        binders.push_back(sanitizeName(successor.name) + "_");
+        successors.push_back(successor);
+      }
+      if (binders.empty())
+        return SuccessorsGenerator({}, {});
+      return SuccessorsGenerator(std::move(binders), std::move(successors));
+    }
+
+    void print(llvm::raw_ostream &os) const
+    {
+      std::vector<std::string> required_successor_creator;
+
+      for (size_t i = 0; i < successors.size(); ++i)
+      {
+        const mlir::tblgen::NamedSuccessor &nsuccessor = successors[i];
+        const auto postfix = nsuccessor.isVariadic() ? "..." : "";
+        required_successor_creator.push_back(llvm::formatv("{0}{1}", binders[i], postfix));
+      }
+      const char *kSuccessorPattern = R"(successors = [{0:$[, ]}]
+  )";
+      os << llvm::formatv(kSuccessorPattern,
+                          make_range(required_successor_creator));
+    }
+
+    std::vector<std::string> types() const
+    {
+      return map_vector(successors, [](const mlir::tblgen::NamedSuccessor &p)
+                        { return std::string(p.isVariadic() ? "Vector{Block}" : "Block"); });
+    }
+
+    std::vector<std::string> binders;
+
+  private:
+    std::vector<mlir::tblgen::NamedSuccessor> successors;
+  };
+
+  class AttributesGenerator
+  {
+    AttributesGenerator(std::string name, std::vector<std::string> binders,
+                        std::vector<std::string> default_values,
+                        std::vector<mlir::tblgen::NamedAttribute> attrs,
+                        std::vector<std::unique_ptr<AttrPattern>> patterns)
         : name(std::move(name)),
           binders(std::move(binders)),
           default_values(std::move(default_values)),
@@ -406,10 +460,10 @@ namespace
           patterns(std::move(patterns)) {}
 
   public:
-    static std::optional<OpAttrPattern> buildFor(mlir::tblgen::Operator &op)
+    static std::optional<AttributesGenerator> buildFor(mlir::tblgen::Operator &op)
     {
       if (op.getNumAttributes() == 0)
-        return OpAttrPattern("NoAttrs", {}, {}, {}, {});
+        return AttributesGenerator("NoAttrs", {}, {}, {}, {});
 
       NameSource gen("a");
       std::vector<std::string> binders;
@@ -439,10 +493,10 @@ namespace
         patterns.push_back(std::move(pattern));
       }
       if (binders.empty())
-        return OpAttrPattern("NoAttrs", {}, {}, {}, {});
+        return AttributesGenerator("NoAttrs", {}, {}, {}, {});
       std::string name = "Internal" + op.getCppClassName().str() + "Attributes";
-      return OpAttrPattern(std::move(name), std::move(binders), std::move(default_values),
-                           std::move(attrs), std::move(patterns));
+      return AttributesGenerator(std::move(name), std::move(binders), std::move(default_values),
+                                 std::move(attrs), std::move(patterns));
     }
 
     void print(llvm::raw_ostream &os, attr_print_state &optional_attr_defs) const
@@ -502,6 +556,10 @@ namespace
     std::vector<std::unique_ptr<AttrPattern>> patterns;
   };
 
+  /**
+   * @brief Generate `create_operation` Julia expression.
+   *
+   */
   std::optional<std::string> buildOperation(
       const llvm::Record *def, bool is_pattern, const std::string &what_for,
       const std::string &location_expr,
@@ -591,7 +649,7 @@ namespace
         results = {2}, 
         operands = operands,
         owned_regions = [{4:$[, ]}], 
-        successors = [], 
+        successors = successors, 
         attributes = attributes,
         result_inference=false
       ))";
@@ -622,8 +680,12 @@ namespace
     return name.substr(dialect_sep_loc + 1);
   }
 
-  void emitPattern(const llvm::Record *def, const OpOperandsGenerator &operands,
-                   const OpAttrPattern &attr_pattern, llvm::raw_ostream &os)
+  /**
+   * @brief Emit Julia function definition, managing attributes, operands, and successors, for creating an operation.
+   */
+  void emitPattern(const llvm::Record *def, const OperandsGenerator &operands,
+                   const SuccessorsGenerator &successors,
+                   const AttributesGenerator &attr_pattern, llvm::raw_ostream &os)
   {
     mlir::tblgen::Operator op(def);
     auto fail = [&op](std::string reason)
@@ -689,18 +751,9 @@ namespace
     // }
 
     // Prepare successors
-    std::vector<std::string> successor_binders;
-    for (int i = 0; i < op.getNumSuccessors(); ++i)
-    {
-      const auto &successor = op.getSuccessor(i);
-      if (successor.isVariadic())
-        return fail("unsupported variadic successor");
-      else
-      {
-        pattern_arg_types.push_back("Block");
-        successor_binders.push_back(sanitizeName(op.getSuccessor(i).name, i) + "_");
-      }
-    }
+    auto successor_types = successors.types();
+    pattern_arg_types.insert(pattern_arg_types.end(), successor_types.begin(),
+                             successor_types.end());
 
     // Prepare attribute pattern
     auto attr_types = attr_pattern.types();
@@ -719,14 +772,14 @@ namespace
     binders.push_back("location");
     binders.insert(binders.end(), result_binders.begin(), result_binders.end());
     binders.insert(binders.end(), operands.binders.begin(), operands.binders.end());
-    binders.insert(binders.end(), successor_binders.begin(), successor_binders.end());
+    binders.insert(binders.end(), successors.binders.begin(), successors.binders.end());
     binders.insert(binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());
 
     // fill default values with empty strings except for attributes
     default_values.push_back("");
     default_values.insert(default_values.end(), result_binders.size(), "");
     default_values.insert(default_values.end(), operands.default_values.begin(), operands.default_values.end());
-    default_values.insert(default_values.end(), successor_binders.size(), "");
+    default_values.insert(default_values.end(), successors.binders.size(), "");
     default_values.insert(default_values.end(), attr_pattern.default_values.begin(), attr_pattern.default_values.end());
 
     std::vector<std::string> all_args;
@@ -740,6 +793,7 @@ namespace
     attr_print_state attr_pattern_state;
 
     operands.print(stream);
+    successors.print(stream);
 
     attr_pattern.print(stream, attr_pattern_state);
 
@@ -812,10 +866,11 @@ end
       os << formatDescription(op);
       os << "\n\"\"\"";
     }
-    std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
-    std::optional<OpOperandsGenerator> operands = OpOperandsGenerator::buildFor(op);
+    std::optional<OperandsGenerator> operands = OperandsGenerator::buildFor(op);
+    std::optional<SuccessorsGenerator> successors = SuccessorsGenerator::buildFor(op);
+    std::optional<AttributesGenerator> attr_pattern = AttributesGenerator::buildFor(op);
 
-    emitPattern(def, *operands, *attr_pattern, os);
+    emitPattern(def, *operands, *successors, *attr_pattern, os);
     os << "\n";
   }
 
