@@ -309,6 +309,90 @@ namespace
     return dialect_name;
   }
 
+  class ResultsGenerator
+  {
+    ResultsGenerator(std::vector<std::string> binders,
+                     std::vector<std::string> default_values,
+                     std::vector<mlir::tblgen::NamedTypeConstraint> results)
+        : binders(std::move(binders)),
+          default_values(std::move(default_values)),
+          results(std::move(results)) {}
+
+  public:
+    static std::optional<ResultsGenerator> buildFor(mlir::tblgen::Operator &op)
+    {
+      if (op.getNumOperands() == 0)
+        return ResultsGenerator({}, {}, {});
+
+      std::vector<std::string> binders;
+      std::vector<std::string> default_values;
+      std::vector<mlir::tblgen::NamedTypeConstraint> operands;
+      for (int i = 0; i < op.getNumResults(); ++i)
+      {
+        const auto &named_result = op.getResult(i);
+        binders.push_back(sanitizeName(named_result.name, i) + "_");
+
+        if (named_result.isOptional())
+        {
+          default_values.push_back("=nothing");
+        }
+        else
+        {
+          default_values.push_back("");
+        }
+
+        operands.push_back(named_result);
+      }
+      if (binders.empty())
+        return ResultsGenerator({}, {}, {});
+      return ResultsGenerator(std::move(binders), std::move(default_values),
+                              std::move(operands));
+    }
+
+    void print(llvm::raw_ostream &os) const
+    {
+      std::vector<std::string> required_result_creator;
+
+      std::vector<std::string> optional_result_creator;
+
+      for (size_t i = 0; i < results.size(); ++i)
+      {
+        const mlir::tblgen::NamedTypeConstraint &nresult = results[i];
+        const auto postfix = nresult.isVariadic() ? "..." : "";
+        if (nresult.isOptional())
+        {
+          optional_result_creator.push_back(llvm::formatv("({0} != nothing) && push!(results, {0}{1})", binders[i], postfix));
+        }
+        else
+        {
+          required_result_creator.push_back(llvm::formatv("{0}{1}", binders[i], postfix));
+        }
+      }
+      const char *kOperandPattern = R"(results = [{0:$[, ]}]
+  {1:$[
+  ]
+  }{2})";
+      os << llvm::formatv(kOperandPattern,
+                          make_range(required_result_creator),
+                          make_range(optional_result_creator),
+                          (optional_result_creator.empty() ? "" : "\n  "));
+    }
+
+    std::vector<std::string> types() const
+    {
+      return map_vector(results, [](const mlir::tblgen::NamedTypeConstraint &p)
+                        {
+        const std::string base = p.isVariadic() ? "Vector{MLIRType}" : "MLIRType";
+        return p.isOptional() ? ("Union{Nothing, " + base + "}") : base; });
+    }
+
+    std::vector<std::string> binders;
+    std::vector<std::string> default_values;
+
+  private:
+    std::vector<mlir::tblgen::NamedTypeConstraint> results;
+  };
+
   class OperandsGenerator
   {
     OperandsGenerator(std::vector<std::string> binders,
@@ -563,7 +647,6 @@ namespace
   std::optional<std::string> buildOperation(
       const llvm::Record *def, bool is_pattern, const std::string &what_for,
       const std::string &location_expr,
-      const std::vector<std::string> &type_exprs,
       const std::vector<std::string> &region_exprs)
   {
     mlir::tblgen::Operator op(def);
@@ -579,53 +662,53 @@ namespace
     // if (op.getNumSuccessors() != 0) return fail("successors");
 
     // Prepare results
-    std::string type_expr;
-    if (op.getNumResults() == 0)
-    {
-      assert(type_exprs.size() == op.getNumResults());
-      type_expr = "[]";
-    }
-    else if (op.getNumVariableLengthResults() == 0 &&
-             op.getTrait("::mlir::OpTrait::SameOperandsAndResultType"))
-    {
-      assert(type_exprs.size() == 1);
-      type_expr = llvm::formatv("[{0:$[, ]}]",
-                                make_range(std::vector<llvm::StringRef>(
-                                    op.getNumResults(), type_exprs.front())));
-    }
-    else if (op.getNumVariableLengthResults() == 0)
-    {
-      assert(type_exprs.size() == op.getNumResults());
-      type_expr = llvm::formatv("[{0:$[, ]}]", make_range(type_exprs));
-    }
-    else if (!is_pattern)
-    {
-      // TODO(jumerckx): when does this happen?
-      assert(type_exprs.size() == op.getNumResults());
-      std::vector<std::string> list_type_exprs;
-      for (int i = 0; i < op.getNumResults(); ++i)
-      {
-        auto &result = op.getResult(i);
-        if (result.isOptional())
-        {
-          list_type_exprs.push_back("(Data.Maybe.maybeToList " + type_exprs[i] + ")");
-        }
-        else if (result.isVariadic())
-        {
-          list_type_exprs.push_back(type_exprs[i]);
-        }
-        else
-        {
-          assert(!result.isVariableLength());
-          list_type_exprs.push_back("[" + type_exprs[i] + "]");
-        }
-      }
-      type_expr = llvm::formatv("({0:$[ ++ ]})", make_range(list_type_exprs));
-    }
-    else
-    {
-      return fail("unsupported variable length results");
-    }
+    // std::string type_expr;
+    // if (op.getNumResults() == 0)
+    // {
+    //   assert(type_exprs.size() == op.getNumResults());
+    //   type_expr = "[]";
+    // }
+    // else if (op.getNumVariableLengthResults() == 0 &&
+    //          op.getTrait("::mlir::OpTrait::SameOperandsAndResultType"))
+    // {
+    //   assert(type_exprs.size() == 1);
+    //   type_expr = llvm::formatv("[{0:$[, ]}]",
+    //                             make_range(std::vector<llvm::StringRef>(
+    //                                 op.getNumResults(), type_exprs.front())));
+    // }
+    // else if (op.getNumVariableLengthResults() == 0)
+    // {
+    //   assert(type_exprs.size() == op.getNumResults());
+    //   type_expr = llvm::formatv("[{0:$[, ]}]", make_range(type_exprs));
+    // }
+    // else if (!is_pattern)
+    // {
+    //   // TODO(jumerckx): when does this happen?
+    //   assert(type_exprs.size() == op.getNumResults());
+    //   std::vector<std::string> list_type_exprs;
+    //   for (int i = 0; i < op.getNumResults(); ++i)
+    //   {
+    //     auto &result = op.getResult(i);
+    //     if (result.isOptional())
+    //     {
+    //       list_type_exprs.push_back("(Data.Maybe.maybeToList " + type_exprs[i] + ")");
+    //     }
+    //     else if (result.isVariadic())
+    //     {
+    //       list_type_exprs.push_back(type_exprs[i]);
+    //     }
+    //     else
+    //     {
+    //       assert(!result.isVariableLength());
+    //       list_type_exprs.push_back("[" + type_exprs[i] + "]");
+    //     }
+    //   }
+    //   type_expr = llvm::formatv("({0:$[ ++ ]})", make_range(list_type_exprs));
+    // }
+    // else
+    // {
+    //   return fail("unsupported variable length results");
+    // }
 
     // std::string extra_attrs;
     // if (op.getTrait("::mlir::OpTrait::AttrSizedOperandSegments")) {
@@ -646,9 +729,9 @@ namespace
 
     const char *kPatternExplicitType = R"(create_operation(
         "{0}", {1}, 
-        results = {2}, 
+        results = results, 
         operands = operands,
-        owned_regions = [{4:$[, ]}], 
+        owned_regions = [{2:$[, ]}], 
         successors = successors, 
         attributes = attributes,
         result_inference=false
@@ -656,9 +739,7 @@ namespace
     return llvm::formatv(kPatternExplicitType,
                          op.getOperationName(),    // 0
                          location_expr,            // 1
-                         type_expr,                // 2
-                         "placeholder",            // operand_expr,                             // 3
-                         make_range(region_exprs)) // 4
+                         make_range(region_exprs)) // 2
         .str();
   }
 
@@ -683,8 +764,8 @@ namespace
   /**
    * @brief Emit Julia function definition, managing attributes, operands, and successors, for creating an operation.
    */
-  void emitPattern(const llvm::Record *def, const OperandsGenerator &operands,
-                   const SuccessorsGenerator &successors,
+  void emitPattern(const llvm::Record *def, const ResultsGenerator &results,
+                   const OperandsGenerator &operands, const SuccessorsGenerator &successors,
                    const AttributesGenerator &attr_pattern, llvm::raw_ostream &os)
   {
     mlir::tblgen::Operator op(def);
@@ -694,8 +775,8 @@ namespace
     };
 
     // Skip currently unsupported cases
-    if (op.getNumVariableLengthResults() != 0)
-      return fail("variadic results");
+    // if (op.getNumVariableLengthResults() != 0)
+    //   return fail("variadic results");
     if (op.getNumRegions() != 0)
       return fail("regions");
     // if (op.getNumSuccessors() != 0) return fail("successors");
@@ -711,23 +792,27 @@ namespace
     std::vector<std::string> pattern_arg_types{"Location"};
 
     // Prepare results
-    std::vector<std::string> result_binders;
-    if (op.getNumResults() > 0 &&
-        op.getTrait("::mlir::OpTrait::SameOperandsAndResultType"))
-    {
-      assert(op.getNumVariableLengthResults() == 0);
-      pattern_arg_types.push_back("MLIRType");
-      result_binders.push_back("type");
-    }
-    else
-    {
-      size_t result_count = 0;
-      for (int i = 0; i < op.getNumResults(); ++i)
-      {
-        pattern_arg_types.push_back("MLIRType");
-        result_binders.push_back(llvm::formatv("type_{0}", result_count++));
-      }
-    }
+    auto result_types = results.types();
+    pattern_arg_types.insert(pattern_arg_types.end(), result_types.begin(),
+                             result_types.end());
+
+    // std::vector<std::string> result_binders;
+    // if (op.getNumResults() > 0 &&
+    //     op.getTrait("::mlir::OpTrait::SameOperandsAndResultType"))
+    // {
+    //   assert(op.getNumVariableLengthResults() == 0);
+    //   pattern_arg_types.push_back("MLIRType");
+    //   result_binders.push_back("type");
+    // }
+    // else
+    // {
+    //   size_t result_count = 0;
+    //   for (int i = 0; i < op.getNumResults(); ++i)
+    //   {
+    //     pattern_arg_types.push_back("MLIRType");
+    //     result_binders.push_back(llvm::formatv("type_{0}", result_count++));
+    //   }
+    // }
 
     // Prepare operands
     auto operand_types = operands.types();
@@ -755,14 +840,13 @@ namespace
     pattern_arg_types.insert(pattern_arg_types.end(), successor_types.begin(),
                              successor_types.end());
 
-    // Prepare attribute pattern
+    // Prepare attributes
     auto attr_types = attr_pattern.types();
     pattern_arg_types.insert(pattern_arg_types.end(), attr_types.begin(),
                              attr_types.end());
 
     std::optional<std::string> operation = buildOperation(
-        def, true, "pattern", "location",
-        result_binders, {});
+        def, true, "pattern", "location", {});
     if (!operation)
       return;
 
@@ -770,14 +854,14 @@ namespace
     std::vector<std::string> default_values;
 
     binders.push_back("location");
-    binders.insert(binders.end(), result_binders.begin(), result_binders.end());
+    binders.insert(binders.end(), results.binders.begin(), results.binders.end());
     binders.insert(binders.end(), operands.binders.begin(), operands.binders.end());
     binders.insert(binders.end(), successors.binders.begin(), successors.binders.end());
     binders.insert(binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());
 
     // fill default values with empty strings except for attributes
     default_values.push_back("");
-    default_values.insert(default_values.end(), result_binders.size(), "");
+    default_values.insert(default_values.end(), results.default_values.begin(), results.default_values.end());
     default_values.insert(default_values.end(), operands.default_values.begin(), operands.default_values.end());
     default_values.insert(default_values.end(), successors.binders.size(), "");
     default_values.insert(default_values.end(), attr_pattern.default_values.begin(), attr_pattern.default_values.end());
@@ -792,6 +876,7 @@ namespace
     llvm::raw_string_ostream stream(attribute_definitions);
     attr_print_state attr_pattern_state;
 
+    results.print(stream);
     operands.print(stream);
     successors.print(stream);
 
@@ -866,11 +951,12 @@ end
       os << formatDescription(op);
       os << "\n\"\"\"";
     }
+    std::optional<ResultsGenerator> results = ResultsGenerator::buildFor(op);
     std::optional<OperandsGenerator> operands = OperandsGenerator::buildFor(op);
     std::optional<SuccessorsGenerator> successors = SuccessorsGenerator::buildFor(op);
     std::optional<AttributesGenerator> attr_pattern = AttributesGenerator::buildFor(op);
 
-    emitPattern(def, *operands, *successors, *attr_pattern, os);
+    emitPattern(def, *results, *operands, *successors, *attr_pattern, os);
     os << "\n";
   }
 
