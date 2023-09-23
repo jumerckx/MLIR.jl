@@ -470,6 +470,30 @@ namespace
         return p.isOptional() ? ("Union{Nothing, " + base + "}") : base; });
     }
 
+    std::vector<std::string> lengths() const
+    {
+      std::vector<std::string> result;
+      for (int i; i < operands.size(); ++i)
+      {
+        const mlir::tblgen::NamedTypeConstraint &noperand = operands[i];
+        std::string base;
+        if (noperand.isVariadic())
+        {
+          base = llvm::formatv("length({0})", binders[i]);
+        }
+        else
+        {
+          base = "1";
+        }
+        if (noperand.isOptional())
+        {
+          base = llvm::formatv("({0} == nothing) ? 0 : {1}", binders[i], base);
+        }
+        result.push_back(base);
+      }
+      return result;
+    }
+
     std::vector<std::string> binders;
     std::vector<std::string> default_values;
 
@@ -661,72 +685,6 @@ namespace
       return fail("variadic regions");
     // if (op.getNumSuccessors() != 0) return fail("successors");
 
-    // Prepare results
-    // std::string type_expr;
-    // if (op.getNumResults() == 0)
-    // {
-    //   assert(type_exprs.size() == op.getNumResults());
-    //   type_expr = "[]";
-    // }
-    // else if (op.getNumVariableLengthResults() == 0 &&
-    //          op.getTrait("::mlir::OpTrait::SameOperandsAndResultType"))
-    // {
-    //   assert(type_exprs.size() == 1);
-    //   type_expr = llvm::formatv("[{0:$[, ]}]",
-    //                             make_range(std::vector<llvm::StringRef>(
-    //                                 op.getNumResults(), type_exprs.front())));
-    // }
-    // else if (op.getNumVariableLengthResults() == 0)
-    // {
-    //   assert(type_exprs.size() == op.getNumResults());
-    //   type_expr = llvm::formatv("[{0:$[, ]}]", make_range(type_exprs));
-    // }
-    // else if (!is_pattern)
-    // {
-    //   // TODO(jumerckx): when does this happen?
-    //   assert(type_exprs.size() == op.getNumResults());
-    //   std::vector<std::string> list_type_exprs;
-    //   for (int i = 0; i < op.getNumResults(); ++i)
-    //   {
-    //     auto &result = op.getResult(i);
-    //     if (result.isOptional())
-    //     {
-    //       list_type_exprs.push_back("(Data.Maybe.maybeToList " + type_exprs[i] + ")");
-    //     }
-    //     else if (result.isVariadic())
-    //     {
-    //       list_type_exprs.push_back(type_exprs[i]);
-    //     }
-    //     else
-    //     {
-    //       assert(!result.isVariableLength());
-    //       list_type_exprs.push_back("[" + type_exprs[i] + "]");
-    //     }
-    //   }
-    //   type_expr = llvm::formatv("({0:$[ ++ ]})", make_range(list_type_exprs));
-    // }
-    // else
-    // {
-    //   return fail("unsupported variable length results");
-    // }
-
-    // std::string extra_attrs;
-    // if (op.getTrait("::mlir::OpTrait::AttrSizedOperandSegments")) {
-    //   std::vector<std::string> segment_sizes;
-    //   for (int i = 0; i < op.getNumOperands(); ++i) {
-    //     auto& operand = op.getOperand(i);
-    //     if (operand.isOptional()) {
-    //       segment_sizes.push_back(llvm::formatv(
-    //           "case {0} of Just _ -> 1; Nothing -> 0", operand_exprs[i]));
-    //     } else if (operand.isVariadic()) {
-    //       segment_sizes.push_back("Prelude.length " + operand_exprs[i]);
-    //     } else {
-    //       assert(!operand.isVariableLength());
-    //       segment_sizes.push_back("1");
-    //     }
-    //   }
-    // }
-
     const char *kPatternExplicitType = R"(create_operation(
         "{0}", {1}, 
         results = results, 
@@ -796,44 +754,10 @@ namespace
     pattern_arg_types.insert(pattern_arg_types.end(), result_types.begin(),
                              result_types.end());
 
-    // std::vector<std::string> result_binders;
-    // if (op.getNumResults() > 0 &&
-    //     op.getTrait("::mlir::OpTrait::SameOperandsAndResultType"))
-    // {
-    //   assert(op.getNumVariableLengthResults() == 0);
-    //   pattern_arg_types.push_back("MLIRType");
-    //   result_binders.push_back("type");
-    // }
-    // else
-    // {
-    //   size_t result_count = 0;
-    //   for (int i = 0; i < op.getNumResults(); ++i)
-    //   {
-    //     pattern_arg_types.push_back("MLIRType");
-    //     result_binders.push_back(llvm::formatv("type_{0}", result_count++));
-    //   }
-    // }
-
     // Prepare operands
     auto operand_types = operands.types();
     pattern_arg_types.insert(pattern_arg_types.end(), operand_types.begin(),
                              operand_types.end());
-
-    // std::vector<std::string> operand_binders;
-    // if (op.getNumOperands() == 1 && op.getOperand(0).isVariadic()) {
-    //   // Single variadic arg is easy to handle
-    //   pattern_arg_types.push_back("Vector{Value}");
-    //   operand_binders.push_back(sanitizeName(op.getOperand(0).name, 0) + "_");
-    // } else {
-    //   // Non-variadic case
-    //   for (int i = 0; i < op.getNumOperands(); ++i) {
-    //     const auto& operand = op.getOperand(i);
-    //     if (operand.isVariableLength())
-    //       return fail("unsupported variable length operand");
-    //     pattern_arg_types.push_back("Value");
-    //     operand_binders.push_back(sanitizeName(operand.name, i) + "_");
-    //   }
-    // }
 
     // Prepare successors
     auto successor_types = successors.types();
@@ -881,6 +805,15 @@ namespace
     successors.print(stream);
 
     attr_pattern.print(stream, attr_pattern_state);
+
+    if (op.getTrait("::mlir::OpTrait::AttrSizedOperandSegments"))
+    {
+      auto operand_segment_sizes_template = R"(
+  push!(attributes, make_named_attribute("operand_segment_sizes", Int32[{0:$[, ]}]))
+  )";
+      stream << llvm::formatv(operand_segment_sizes_template,
+                              make_range(operands.lengths()));
+    }
 
     const char *kPatternExplicitType = R"(
 function {0}({1:$[, ]})
