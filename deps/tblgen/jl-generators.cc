@@ -267,6 +267,78 @@ std::string getDialectName(llvm::ArrayRef<llvm::Record*> op_defs) {
   return dialect_name;
 }
 
+class OpOperandsGenerator {
+  OpOperandsGenerator(std::vector<std::string> binders,
+                      std::vector<std::string> default_values,
+                      std::vector<mlir::tblgen::NamedTypeConstraint> operands)
+      : binders(std::move(binders)),
+        default_values(std::move(default_values)),
+        operands(std::move(operands)) {}
+
+  public:
+    static std::optional<OpOperandsGenerator> buildFor(mlir::tblgen::Operator& op) {
+      if (op.getNumOperands() == 0) return OpOperandsGenerator({}, {}, {});
+
+      NameSource gen("o");
+      std::vector<std::string> binders;
+      std::vector<std::string> default_values;
+      std::vector<mlir::tblgen::NamedTypeConstraint> operands;
+      for (const auto& named_operand : op.getOperands()) {
+        binders.push_back(sanitizeName(named_operand.name) + "_");
+
+        if (named_operand.isOptional()) {
+          default_values.push_back("=nothing");
+        }
+        else {
+          default_values.push_back("");
+        }
+
+        operands.push_back(named_operand);
+      }
+      if (binders.empty()) return OpOperandsGenerator({}, {}, {});
+      return OpOperandsGenerator(std::move(binders), std::move(default_values),
+                                std::move(operands));
+    }
+
+    void print(llvm::raw_ostream& os) const {
+      std::vector<std::string> required_operand_creator;
+
+      std::vector<std::string> optional_operand_creator;
+
+      for (size_t i = 0; i < operands.size(); ++i) {
+        const mlir::tblgen::NamedTypeConstraint& noperand = operands[i];
+        const auto postfix = noperand.isVariadic() ? "..." : "";
+        if (noperand.isOptional()) {
+          optional_operand_creator.push_back(llvm::formatv("({1} != nothing) && push!(operands, {0}{1})", binders[i], postfix));
+        } else {
+          required_operand_creator.push_back(llvm::formatv("{0}{1}", binders[i], postfix));
+        }
+      }
+      const char* kOperandPattern = R"(operands = [{0:$[, ]}]{2}
+  {1:$[
+  ]
+  }{2})";
+      os << llvm::formatv(kOperandPattern,
+                          make_range(required_operand_creator),
+                          make_range(optional_operand_creator),
+                          (optional_operand_creator.empty() ? "" : "\n"));
+    }
+
+    std::vector<std::string> types() const {
+      return map_vector(operands, [](const mlir::tblgen::NamedTypeConstraint& p) {
+        const std::string base = p.isVariadic() ? "Vector{Value}" : "Value";
+        return p.isOptional() ? ("Union{Nothing, " + base + "}") : base;
+      });
+    }
+
+    std::vector<std::string> binders;
+    std::vector<std::string> default_values;
+  
+  private:
+    std::vector<mlir::tblgen::NamedTypeConstraint> operands;
+};
+
+
 class OpAttrPattern {
   OpAttrPattern(std::string name, std::vector<std::string> binders,
                 std::vector<std::string> default_values,
@@ -334,7 +406,7 @@ class OpAttrPattern {
                         make_range(required_attr_creator),
                         make_range(optional_attr_creator),
                         (optional_attr_creator.empty() ? "" : "\n"));
-}
+  }
 
   std::vector<std::string> types() const {
     return map_vector(patterns, [](const std::unique_ptr<AttrPattern>& p) {
@@ -364,9 +436,7 @@ std::optional<std::string> buildOperation(
     const llvm::Record* def, bool is_pattern, const std::string& what_for,
     const std::string& location_expr,
     const std::vector<std::string>& type_exprs,
-    const std::vector<std::string>& operand_exprs,
-    const std::vector<std::string>& region_exprs,
-    const OpAttrPattern& attr_pattern) {
+    const std::vector<std::string>& region_exprs) {
   mlir::tblgen::Operator op(def);
   auto fail = [&op, &what_for](std::string reason) {
     warn(op, llvm::formatv("couldn't construct {0}: {1}", what_for, reason));
@@ -411,56 +481,27 @@ std::optional<std::string> buildOperation(
     return fail("unsupported variable length results");
   }
 
-  // Prepare operands
-  std::string operand_expr;
-  assert(operand_exprs.size() == op.getNumOperands());
-  if (op.getNumOperands() == 1 && op.getOperand(0).isVariadic()) {
-    //TODO(jumerckx): should probably be operand_expr="[]"
-    // Note that this expr already should represent a list
-    operand_expr = operand_exprs.front();
-  } else if (op.getNumVariableLengthOperands() == 0) {
-    operand_expr = llvm::formatv("[{0:$[, ]}]", make_range(operand_exprs));
-  } else if (!is_pattern) {
-    // TODO(jumerckx): when does this happen?
-    std::vector<std::string> operand_list_exprs;
-    for (int i = 0; i < op.getNumOperands(); ++i) {
-      auto& operand = op.getOperand(i);
-      if (operand.isOptional()) {
-        operand_list_exprs.push_back("(Data.Maybe.maybeToList " + operand_exprs[i] + ")");
-      } else if (operand.isVariadic()) {
-        operand_list_exprs.push_back(operand_exprs[i]);
-      } else {
-        assert(!operand.isVariableLength());
-        operand_list_exprs.push_back("[" + operand_exprs[i] + "]");
-      }
-    }
-    operand_expr =
-        llvm::formatv("({0:$[ ++ ]})", make_range(operand_list_exprs));
-  } else {
-    return fail("unsupported variable length operands");
-  }
-
-  std::string extra_attrs;
-  if (op.getTrait("::mlir::OpTrait::AttrSizedOperandSegments")) {
-    std::vector<std::string> segment_sizes;
-    for (int i = 0; i < op.getNumOperands(); ++i) {
-      auto& operand = op.getOperand(i);
-      if (operand.isOptional()) {
-        segment_sizes.push_back(llvm::formatv(
-            "case {0} of Just _ -> 1; Nothing -> 0", operand_exprs[i]));
-      } else if (operand.isVariadic()) {
-        segment_sizes.push_back("Prelude.length " + operand_exprs[i]);
-      } else {
-        assert(!operand.isVariableLength());
-        segment_sizes.push_back("1");
-      }
-    }
-  }
+  // std::string extra_attrs;
+  // if (op.getTrait("::mlir::OpTrait::AttrSizedOperandSegments")) {
+  //   std::vector<std::string> segment_sizes;
+  //   for (int i = 0; i < op.getNumOperands(); ++i) {
+  //     auto& operand = op.getOperand(i);
+  //     if (operand.isOptional()) {
+  //       segment_sizes.push_back(llvm::formatv(
+  //           "case {0} of Just _ -> 1; Nothing -> 0", operand_exprs[i]));
+  //     } else if (operand.isVariadic()) {
+  //       segment_sizes.push_back("Prelude.length " + operand_exprs[i]);
+  //     } else {
+  //       assert(!operand.isVariableLength());
+  //       segment_sizes.push_back("1");
+  //     }
+  //   }
+  // }
 
   const char* kPatternExplicitType = R"(create_operation(
         "{0}", {1}, 
         results = {2}, 
-        operands = {3},
+        operands = operands,
         owned_regions = [{4:$[, ]}], 
         successors = [], 
         attributes = attributes,
@@ -470,10 +511,8 @@ std::optional<std::string> buildOperation(
                        op.getOperationName(),                    // 0
                        location_expr,                            // 1
                        type_expr,                                // 2
-                       operand_expr,                             // 3
-                       make_range(region_exprs),                 // 4
-                       attr_pattern.name,                        // 5
-                       make_range(attr_pattern.binders))        // 6
+                       "placeholder", //operand_expr,                             // 3
+                       make_range(region_exprs))                 // 4
       .str();
 }
 
@@ -491,8 +530,8 @@ std::string stripDialect(std::string name) {
   return name.substr(dialect_sep_loc + 1);
 }
 
-void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
-                 llvm::raw_ostream& os) {
+void emitPattern(const llvm::Record* def, const OpOperandsGenerator& operands,
+                 const OpAttrPattern& attr_pattern, llvm::raw_ostream& os) {
   mlir::tblgen::Operator op(def);
   auto fail = [&op](std::string reason) {
     return warn(op, llvm::formatv("couldn't construct pattern: {0}", reason));
@@ -527,21 +566,25 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   }
 
   // Prepare operands
-  std::vector<std::string> operand_binders;
-  if (op.getNumOperands() == 1 && op.getOperand(0).isVariadic()) {
-    // Single variadic arg is easy to handle
-    pattern_arg_types.push_back("Vector{Value}");
-    operand_binders.push_back(sanitizeName(op.getOperand(0).name, 0) + "_");
-  } else {
-    // Non-variadic case
-    for (int i = 0; i < op.getNumOperands(); ++i) {
-      const auto& operand = op.getOperand(i);
-      if (operand.isVariableLength())
-        return fail("unsupported variable length operand");
-      pattern_arg_types.push_back("Value");
-      operand_binders.push_back(sanitizeName(operand.name, i) + "_");
-    }
-  }
+  auto operand_types = operands.types();
+  pattern_arg_types.insert(pattern_arg_types.end(), operand_types.begin(),
+                           operand_types.end());
+
+  // std::vector<std::string> operand_binders;
+  // if (op.getNumOperands() == 1 && op.getOperand(0).isVariadic()) {
+  //   // Single variadic arg is easy to handle
+  //   pattern_arg_types.push_back("Vector{Value}");
+  //   operand_binders.push_back(sanitizeName(op.getOperand(0).name, 0) + "_");
+  // } else {
+  //   // Non-variadic case
+  //   for (int i = 0; i < op.getNumOperands(); ++i) {
+  //     const auto& operand = op.getOperand(i);
+  //     if (operand.isVariableLength())
+  //       return fail("unsupported variable length operand");
+  //     pattern_arg_types.push_back("Value");
+  //     operand_binders.push_back(sanitizeName(operand.name, i) + "_");
+  //   }
+  // }
 
   // Prepare successors
   std::vector<std::string> successor_binders;
@@ -561,7 +604,7 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
 
   std::optional<std::string> operation = buildOperation(
       def, true, "pattern", "location",
-      result_binders, operand_binders, {}, attr_pattern);
+      result_binders, {});
   if (!operation) return;
 
   std::vector<std::string> binders;
@@ -569,14 +612,14 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
 
   binders.push_back("location");
   binders.insert(binders.end(), result_binders.begin(), result_binders.end());
-  binders.insert(binders.end(), operand_binders.begin(), operand_binders.end());
+  binders.insert(binders.end(), operands.binders.begin(), operands.binders.end());
   binders.insert(binders.end(), successor_binders.begin(), successor_binders.end());
   binders.insert(binders.end(), attr_pattern.binders.begin(), attr_pattern.binders.end());
 
   // fill default values with empty strings except for attributes
   default_values.push_back("");
   default_values.insert(default_values.end(), result_binders.size(), "");
-  default_values.insert(default_values.end(), operand_binders.size(), "");
+  default_values.insert(default_values.end(), operands.default_values.begin(), operands.default_values.end());
   default_values.insert(default_values.end(), successor_binders.size(), "");
   default_values.insert(default_values.end(), attr_pattern.default_values.begin(), attr_pattern.default_values.end());
 
@@ -588,6 +631,9 @@ void emitPattern(const llvm::Record* def, const OpAttrPattern& attr_pattern,
   std::string attribute_definitions;
   llvm::raw_string_ostream stream(attribute_definitions);
   attr_print_state attr_pattern_state;
+
+  operands.print(stream);
+
   attr_pattern.print(stream, attr_pattern_state);
 
   const char* kPatternExplicitType = R"(
@@ -652,8 +698,9 @@ end
       os << "\n\"\"\"";
     }
     std::optional<OpAttrPattern> attr_pattern = OpAttrPattern::buildFor(op);
-    if (!attr_pattern) continue;
-    emitPattern(def, *attr_pattern, os);
+    std::optional<OpOperandsGenerator> operands = OpOperandsGenerator::buildFor(op);
+
+    emitPattern(def, *operands, *attr_pattern, os);
     os << "\n";
   }
 
