@@ -1,5 +1,14 @@
 module Dialects
 
+import ..IR: Attribute, NamedAttribute
+
+make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
+make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
+function make_named_attribute(name, val::NamedAttribute)
+    assert(true) # TODO(jm): check whether name of attribute is correct, getting the name might need to be added to IR.jl?
+    return val
+end
+
 module arith
 
 using ...IR

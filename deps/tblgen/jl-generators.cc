@@ -914,16 +914,8 @@ bool emitOpTableDefs(const llvm::RecordKeeper &recordKeeper,
   auto dialect_name = getDialectName(defs);
   os << "module " << dialect_name << "\n";
   os << R"(
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Attribute, create_operation
-
-make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
-
-make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
-
-function make_named_attribute(name, val::NamedAttribute)
-  assert(true) # TODO(jm): check whether name of attribute is correct, getting the name might need to be added to IR.jl?
-  return val
-end
+import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation
+import ..Dialects: make_named_attribute
 )";
 
   attr_print_state attr_pattern_state;
