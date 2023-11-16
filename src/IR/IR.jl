@@ -185,21 +185,36 @@ MLIRType(ft::Pair) =
     MLIRType(API.mlirFunctionTypeGet(context(),
         length(ft.first), [MLIRType(t) for t in ft.first],
         length(ft.second), [MLIRType(t) for t in ft.second]))
-MLIRType(a::AbstractArray{T}) where {T} = MLIRType(MLIRType(T), size(a))
-MLIRType(::Type{<:AbstractArray{T,N}}, dims) where {T,N} =
-    MLIRType(API.mlirRankedTensorTypeGetChecked(
-        Location(),
-        N, collect(dims),
-        MLIRType(T),
-        Attribute(),
+MLIRType(A::Type{<:AbstractArray{T, N}}) where {T, N} = begin
+    # TODO: are these strides correct for N>2?
+    return IR.MLIRType(API.mlirMemRefTypeGet(
+        IR.MLIRType(T),
+        N,
+        Int[typemin(Int) for _ in 1:N],
+        IR.Attribute(API.mlirStridedLayoutAttrGet(
+            IR.context().context,
+            0,
+            N,
+            Int[1, [typemin(Int) for _ in 2:N]...])),
+        IR.Attribute() # no particular memory space
     ))
-MLIRType(element_type::MLIRType, dims) =
-    MLIRType(API.mlirRankedTensorTypeGetChecked(
-        Location(),
-        length(dims), collect(dims),
-        element_type,
-        Attribute(),
-    ))
+end
+# MLIRType(a::AbstractArray{T}) where {T} = MLIRType(MLIRType(T), size(a))
+# MLIRType(a::Type{AbstractArray{T}}) where {T} = MLIRType(MLIRType(T), size(a))
+# MLIRType(::Type{<:AbstractArray{T,N}}, dims) where {T,N} =
+#     MLIRType(API.mlirRankedTensorTypeGetChecked(
+#         Location(),
+#         N, collect(dims),
+#         MLIRType(T),
+#         Attribute(),
+#     ))
+# MLIRType(element_type::MLIRType, dims) =
+#     MLIRType(API.mlirRankedTensorTypeGetChecked(
+#         Location(),
+#         length(dims), collect(dims),
+#         element_type,
+#         Attribute(),
+#     ))
 MLIRType(::T) where {T<:Real} = MLIRType(T)
 MLIRType(_, type::MLIRType) = type
 
@@ -334,8 +349,8 @@ Attribute(type::MLIRType) = Attribute(API.mlirTypeAttrGet(type))
 Attribute(f::F, type=MLIRType(F)) where {F<:AbstractFloat} = Attribute(
     API.mlirFloatAttrDoubleGet(context(), type, Float64(f))
 )
-Attribute(i::T) where {T<:Integer} = Attribute(
-    API.mlirIntegerAttrGet(MLIRType(T), Int64(i))
+Attribute(i::T, type=MLIRType(T)) where {T<:Integer} = Attribute(
+    API.mlirIntegerAttrGet(type, Int64(i))
 )
 function Attribute(values::T) where {T<:AbstractArray{Int32}}
     type = MLIRType(T, size(values))
@@ -508,7 +523,10 @@ mutable struct Operation
         @assert !mlirIsNull(operation) "cannot create Operation with null MlirOperation"
         finalizer(new(operation, owned)) do op
             if op.owned
+                @async @warn "Destroying owned Operation!"
                 API.mlirOperationDestroy(op.operation)
+            else
+                @async @warn "Destroying non-owned Operation."
             end
         end
     end
@@ -645,6 +663,7 @@ function Base.show(io::IO, operation::Operation)
     ref = Ref(io)
     flags = API.mlirOpPrintingFlagsCreate()
     get(io, :debug, false) && API.mlirOpPrintingFlagsEnableDebugInfo(flags, true, true)
+    API.mlirOpPrintingFlagsPrintGenericOpForm(flags)
     API.mlirOperationPrintWithFlags(operation, flags, c_print_callback, ref)
     println(io)
 end
@@ -661,7 +680,10 @@ mutable struct Block
         @assert !mlirIsNull(block) "cannot create Block with null MlirBlock"
         finalizer(new(block, owned)) do block
             if block.owned
+                @async @warn "Destroying owned Block!"
                 API.mlirBlockDestroy(block.block)
+            else
+                @async @warn "Destroying non-owned Block."
             end
         end
     end
@@ -786,7 +808,7 @@ get_body(module_) = Block(API.mlirModuleGetBody(module_), false)
 get_first_child_op(mod::MModule) = get_first_child_op(get_operation(mod))
 
 Base.convert(::Type{MlirModule}, module_::MModule) = module_.module_
-Base.parse(::Type{MModule}, module_) = MModule(API.mlirModuleCreateParse(context(), module_), context())
+Base.parse(::Type{MModule}, module_) = MModule(API.mlirModuleCreateParse(context(), module_))
 
 macro mlir_str(code)
     quote
