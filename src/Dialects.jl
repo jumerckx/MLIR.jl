@@ -1,5 +1,36 @@
 module Dialects
 
+import ..IR: Attribute, NamedAttribute
+
+make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
+make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
+function make_named_attribute(name, val::NamedAttribute)
+    @assert true # TODO(jm): check whether name of attribute is correct, getting the name might need to be added to IR.jl?
+    return val
+end
+
+include("dialects/Builtin.jl")
+
+include("dialects/LLVM.jl")
+
+include("dialects/Arith.jl")
+
+include("dialects/CF.jl")
+
+include("dialects/Func.jl")
+
+include("dialects/Gpu.jl")
+
+include("dialects/Memref.jl")
+
+include("dialects/Index.jl")
+
+include("dialects/Affine.jl")
+
+include("dialects/Ub.jl")
+
+include("dialects/Scf.jl")
+
 module arith
 
 using ...IR
@@ -115,7 +146,10 @@ function cond_br(
         operands=[cond, true_dest_operands..., false_dest_operands...],
         attributes=[
             IR.NamedAttribute("operand_segment_sizes",
-                IR.Attribute(Int32[1, length(true_dest_operands), length(false_dest_operands)]))
+                Attribute(API.mlirDenseI32ArrayGet(
+                    context().context,
+                    1 + length(trueDestOperands_) + length(falseDestOperands_),
+                    Int32[1, length(trueDestOperands_), length(falseDestOperands_)])))
         ],
         result_inference=false,
     )
@@ -137,6 +171,7 @@ end # module func
 module cf
 
 using ...IR
+using ...API
 
 function br(dest, operands; loc=Location())
     IR.create_operation("cf.br", loc; operands, successors=[dest], result_inference=false)
@@ -148,17 +183,20 @@ function cond_br(
     true_dest_operands,
     false_dest_operands;
     loc=Location(),
-)
+)    
     IR.create_operation(
         "cf.cond_br", loc; 
         operands=[cond, true_dest_operands..., false_dest_operands...],
         successors=[true_dest, false_dest],
-        attributes=[
-            IR.NamedAttribute("operand_segment_sizes",
-                IR.Attribute(Int32[1, length(true_dest_operands), length(false_dest_operands)]))
+        attributes=NamedAttribute[
+            NamedAttribute("operand_segment_sizes", Attribute(API.mlirDenseI32ArrayGet(
+                context().context,
+                3,
+                Int32[1, length(true_dest_operands), length(false_dest_operands)])))
         ],
         result_inference=false,
     )
+    
 end
 
 end # module cf
