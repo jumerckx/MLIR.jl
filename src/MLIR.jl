@@ -1,5 +1,7 @@
 module MLIR
 
+include("get_artifact.jl")
+
 import LLVM
 
 module API
@@ -7,9 +9,12 @@ module API
 
     # MLIR C API
     import ..LLVM
-    using MLIR_jll
+
+    using Pkg.Artifacts
+    MLIRdist_path = artifact"MLIRdist"
+    const mlir_c = joinpath(MLIRdist_path, "mlir/lib/libMLIR-C.so")
+
     let
-        # ver = string(LLVM.version().major)
         ver = "18"
         dir = joinpath(@__DIR__, "..", "lib", ver)
         if !isdir(dir)
