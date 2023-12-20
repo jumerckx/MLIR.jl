@@ -193,28 +193,12 @@ MLIRType(A::Type{<:AbstractArray{T, N}}) where {T, N} = begin
         Int[typemin(Int) for _ in 1:N],
         IR.Attribute(API.mlirStridedLayoutAttrGet(
             IR.context().context,
-            0,
+            API.mlirShapedTypeGetDynamicSize(),
             N,
             Int[1, [typemin(Int) for _ in 2:N]...])),
         IR.Attribute() # no particular memory space
     ))
 end
-# MLIRType(a::AbstractArray{T}) where {T} = MLIRType(MLIRType(T), size(a))
-# MLIRType(a::Type{AbstractArray{T}}) where {T} = MLIRType(MLIRType(T), size(a))
-# MLIRType(::Type{<:AbstractArray{T,N}}, dims) where {T,N} =
-#     MLIRType(API.mlirRankedTensorTypeGetChecked(
-#         Location(),
-#         N, collect(dims),
-#         MLIRType(T),
-#         Attribute(),
-#     ))
-# MLIRType(element_type::MLIRType, dims) =
-#     MLIRType(API.mlirRankedTensorTypeGetChecked(
-#         Location(),
-#         length(dims), collect(dims),
-#         element_type,
-#         Attribute(),
-#     ))
 MLIRType(::T) where {T<:Real} = MLIRType(T)
 MLIRType(_, type::MLIRType) = type
 
@@ -523,10 +507,7 @@ mutable struct Operation
         @assert !mlirIsNull(operation) "cannot create Operation with null MlirOperation"
         finalizer(new(operation, owned)) do op
             if op.owned
-                @async @warn "Destroying owned Operation!"
                 API.mlirOperationDestroy(op.operation)
-            else
-                @async @warn "Destroying non-owned Operation."
             end
         end
     end
@@ -663,7 +644,7 @@ function Base.show(io::IO, operation::Operation)
     ref = Ref(io)
     flags = API.mlirOpPrintingFlagsCreate()
     get(io, :debug, false) && API.mlirOpPrintingFlagsEnableDebugInfo(flags, true, true)
-    API.mlirOpPrintingFlagsPrintGenericOpForm(flags)
+    # API.mlirOpPrintingFlagsPrintGenericOpForm(flags)
     API.mlirOperationPrintWithFlags(operation, flags, c_print_callback, ref)
     println(io)
 end
@@ -680,10 +661,7 @@ mutable struct Block
         @assert !mlirIsNull(block) "cannot create Block with null MlirBlock"
         finalizer(new(block, owned)) do block
             if block.owned
-                @async @warn "Destroying owned Block!"
                 API.mlirBlockDestroy(block.block)
-            else
-                @async @warn "Destroying non-owned Block."
             end
         end
     end

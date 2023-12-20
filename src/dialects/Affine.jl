@@ -1,6 +1,6 @@
 module Affine
 
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context
+import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: make_named_attribute
 import ...API
 
@@ -209,7 +209,10 @@ function For(; location::Location, results_::Vector{MLIRType}, start_::Value, st
   m = API.mlirAffineMapGet(context().context, 0, 1, 1, [affineSymbolExpr])
   attr = Attribute(API.mlirAffineMapAttrGet(m))
 
-  attributes = [make_named_attribute("lowerBoundsMap", attr), make_named_attribute("upperBoundsMap", attr)]
+  attributes = [
+    make_named_attribute("lowerBoundMap", attr),
+    make_named_attribute("upperBoundMap", attr),
+    make_named_attribute("step", Attribute(1, IndexType()))]
 
   push!(attributes, NamedAttribute("operand_segment_sizes",
         Attribute(API.mlirDenseI32ArrayGet(

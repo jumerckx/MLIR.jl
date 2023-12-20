@@ -29,6 +29,8 @@ include("dialects/Affine.jl")
 
 include("dialects/Ub.jl")
 
+include("dialects/Scf.jl")
+
 module arith
 
 using ...IR
