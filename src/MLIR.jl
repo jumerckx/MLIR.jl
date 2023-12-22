@@ -13,6 +13,8 @@ module API
     using Pkg.Artifacts
     MLIRdist_path = artifact"MLIRdist"
     const mlir_c = joinpath(MLIRdist_path, "mlir/lib/libMLIR-C.so")
+    const mlir_runner_utils = joinpath(MLIRdist_path, "mlir/lib/libmlir_runner_utils.so")
+    const mlir_c_runner_utils = joinpath(MLIRdist_path, "mlir/lib/libmlir_c_runner_utils.so")
 
     let
         ver = "18"

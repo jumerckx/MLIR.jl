@@ -177,6 +177,8 @@ MLIRType(T::Type{<:Unsigned}) =
     MLIRType(API.mlirIntegerTypeGet(context(), sizeof(T) * 8))
 MLIRType(::Type{Bool}) =
     MLIRType(API.mlirIntegerTypeGet(context(), 1))
+MLIRType(::Type{Float16}) =
+    MLIRType(API.mlirF16TypeGet(context()))
 MLIRType(::Type{Float32}) =
     MLIRType(API.mlirF32TypeGet(context()))
 MLIRType(::Type{Float64}) =
