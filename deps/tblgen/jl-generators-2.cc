@@ -89,28 +89,64 @@ bool emitOpTableDefs(const llvm::RecordKeeper &recordKeeper,
                      llvm::raw_ostream &os)
 {
 
-    std::vector<llvm::Record *> types = recordKeeper.getAllDerivedDefinitionsIfDefined("Type");
-    os << "\n---Types---\n";
-    for (const auto *def : types)
-    {
-        mlir::tblgen::Type type(def);
+    // std::vector<llvm::Record *> types = recordKeeper.getAllDerivedDefinitionsIfDefined("Type");
+    // os << "\n---Types---\n";
+    // for (const auto *def : types)
+    // {
+    //     mlir::tblgen::Type type(def);
 
-        os << type.getDefName() << "\n";
-    }
+    //     os << type.getDefName() << "\n";
+    // }
 
     std::vector<llvm::Record *> typedefs = recordKeeper.getAllDerivedDefinitionsIfDefined("TypeDef");
     os << "\n---TypeDefs---\n";
+    const char *typetemplate = R"(struct {0} <: AbstractValue
+    value::MlirValue
+    function {0}(v::AbstractValue)
+        get_type(v) == parse(MLIRType, "{1}") || error("Expected {0}, got ", get_type(v))
+        return new(v.value)
+    end
+end
+)";
+
     for (const auto *def : typedefs)
     {
         mlir::tblgen::TypeDef type(def);
 
-        os << type.getName() << "\n";
-
-        for (size_t i = 0; i < type.getNumParameters(); i++)
+        if (type.getNumParameters() > 0)
         {
-            const auto &named_param = type.getParameters()[i];
-            os << "\t" << named_param.getName() << " (parameter)\n";
+            // parametric types are not supported yet
+            break;
         }
+        auto mnemonic = type.getMnemonic();
+        if (!mnemonic.has_value())
+        {
+            break;
+        }
+
+        auto dialectname = type.getDialect().getName();
+        std::string parseableformat = "!" + dialectname.str() + "<" + mnemonic.value().str() + ">";
+
+        std::string name = mnemonic.value().str();
+
+        if (mnemonic.value().equals_insensitive(dialectname))
+        {
+            name += "Type";
+        }
+
+        name[0] = std::toupper(name[0]);
+
+        os << llvm::formatv(typetemplate, name, parseableformat);
+
+        // os << type.getName() << ": "
+        //    << "!" << dialectname << "<" << type.getMnemonic() << ">"
+        //    << ", " << type.getAssemblyFormat() << "\n";
+
+        // for (size_t i = 0; i < type.getNumParameters(); i++)
+        // {
+        //     const auto &named_param = type.getParameters()[i];
+        //     os << "\t" << named_param.getName() << " (parameter)\n";
+        // }
     }
 
     os << "\n---Attributes---\n";
