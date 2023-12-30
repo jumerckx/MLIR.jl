@@ -1,13 +1,22 @@
 module Dialects
 
-import ..IR: Attribute, NamedAttribute
+import ..IR: Attribute, NamedAttribute, context
+import ..API
 
-make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
-make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
-function make_named_attribute(name, val::NamedAttribute)
+namedattribute(name, val) = namedattribute(name, Attribute(val))
+namedattribute(name, val::Attribute) = NamedAttribute(name, val)
+function namedattribute(name, val::NamedAttribute)
     @assert true # TODO(jm): check whether name of attribute is correct, getting the name might need to be added to IR.jl?
     return val
 end
+
+operandsegmentsizes(segments) = namedattribute(
+    "operand_segment_sizes",
+    Attribute(API.mlirDenseI32ArrayGet(
+        context().context,
+        length(segments),
+        Int32.(segments)
+    )))
 
 include("dialects/Builtin.jl")
 
@@ -15,21 +24,21 @@ include("dialects/LLVM.jl")
 
 include("dialects/Arith.jl")
 
-include("dialects/CF.jl")
+include("dialects/ControlFlow.jl")
 
 include("dialects/Func.jl")
 
-include("dialects/Gpu.jl")
+# include("dialects/Gpu.jl")
 
-include("dialects/Memref.jl")
+# include("dialects/Memref.jl")
 
-include("dialects/Index.jl")
+# include("dialects/Index.jl")
 
 include("dialects/Affine.jl")
 
-include("dialects/Ub.jl")
+# include("dialects/Ub.jl")
 
-include("dialects/Scf.jl")
+# include("dialects/SCF.jl")
 
 module arith
 

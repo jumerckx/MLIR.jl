@@ -1,15 +1,9 @@
 module Arith
 
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Attribute, create_operation
+import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ..Dialects: namedattribute, operandsegmentsizes
+import ...API
 
-make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
-
-make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
-
-function make_named_attribute(name, val::NamedAttribute)
-  assert(true) # TODO(jm): check whether name of attribute is correct, getting the name might need to be added to IR.jl?
-  return val
-end
 
 """
 addf
@@ -36,25 +30,25 @@ TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
   
 """
-function AddF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.addf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function addf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.addf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 addi
@@ -78,23 +72,24 @@ Example:
 ```
   
 """
-function AddI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.addi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function addi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.addi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 addui_extended
@@ -118,23 +113,23 @@ Example:
 ```
   
 """
-function AddUIExtended(; location::Location, sum_::MLIRType, overflow_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [sum_, overflow_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.addui_extended", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function addui_extended(lhs::Value, rhs::Value; sum::MLIRType, overflow::MLIRType, location=Location())
+    results = MLIRType[sum, overflow, ]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.addui_extended", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 andi
@@ -158,23 +153,24 @@ Example:
 ```
   
 """
-function AndI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.andi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function andi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.andi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 bitcast
@@ -195,23 +191,23 @@ integer is little-endian) a proper lowering would add operations to swap the
 order of words in addition to the bitcast.
   
 """
-function Bitcast(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.bitcast", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function bitcast(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.bitcast", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 ceildivsi
@@ -229,23 +225,24 @@ Example:
 ```
   
 """
-function CeilDivSI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.ceildivsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function ceildivsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.ceildivsi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 ceildivui
@@ -265,23 +262,24 @@ Example:
 ```
   
 """
-function CeilDivUI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.ceildivui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function ceildivui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.ceildivui", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 cmpf
@@ -311,23 +309,24 @@ Example:
 ```
   
 """
-function CmpF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, predicate_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = [make_named_attribute("predicate", predicate_)]
-  
-  create_operation(
-        "arith.cmpf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function cmpf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("predicate", predicate), ]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.cmpf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 cmpi
@@ -395,23 +394,24 @@ Example:
 ```
   
 """
-function CmpI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, predicate_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = [make_named_attribute("predicate", predicate_)]
-  
-  create_operation(
-        "arith.cmpi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function cmpi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("predicate", predicate), ]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.cmpi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 constant
@@ -431,47 +431,48 @@ Example:
 ```
   
 """
-function Constant(; location::Location, result_::MLIRType, value_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = []
-  successors = []
-  attributes = [make_named_attribute("value", value_)]
-  
-  create_operation(
-        "arith.constant", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function constant(; result=nothing::Union{Nothing, MLIRType}, value::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[]
+    operands = Value[]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("value", value), ]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.constant", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 divf
 
 """
-function DivF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.divf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function divf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.divf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 divsi
@@ -496,23 +497,24 @@ Example:
 ```
   
 """
-function DivSI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.divsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function divsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.divsi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 divui
@@ -538,23 +540,24 @@ Example:
 ```
   
 """
-function DivUI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.divui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function divui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.divui", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 extf
@@ -564,23 +567,23 @@ The destination type must to be strictly wider than the source type.
 When operating on vectors, casts elementwise.
   
 """
-function ExtF(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.extf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function extf(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.extf", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 extsi
@@ -603,23 +606,23 @@ Example:
 ```
   
 """
-function ExtSI(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.extsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function extsi(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.extsi", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 extui
@@ -641,23 +644,23 @@ Example:
 ```
   
 """
-function ExtUI(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.extui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function extui(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.extui", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 fptosi
@@ -667,23 +670,23 @@ towards zero) signed integer value. When operating on vectors, casts
 elementwise.
   
 """
-function FPToSI(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.fptosi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function fptosi(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.fptosi", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 fptoui
@@ -693,23 +696,23 @@ towards zero) unsigned integer value. When operating on vectors, casts
 elementwise.
   
 """
-function FPToUI(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.fptoui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function fptoui(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.fptoui", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 floordivsi
@@ -728,23 +731,24 @@ Example:
 ```
   
 """
-function FloorDivSI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.floordivsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function floordivsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.floordivsi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 index_cast
@@ -755,23 +759,23 @@ a wider integer, the value is sign-extended. If casting to a narrower
 integer, the value is truncated.
   
 """
-function IndexCast(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.index_cast", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function index_cast(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.index_cast", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 index_castui
@@ -782,23 +786,23 @@ a wider integer, the value is zero-extended. If casting to a narrower
 integer, the value is truncated.
   
 """
-function IndexCastUI(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.index_castui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function index_castui(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.index_castui", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 maxf
@@ -820,69 +824,71 @@ Example:
 ```
   
 """
-function MaxF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.maxf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function maxf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.maxf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 maxsi
 
 """
-function MaxSI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.maxsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function maxsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.maxsi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 maxui
 
 """
-function MaxUI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.maxui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function maxui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.maxui", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 minf
@@ -904,69 +910,71 @@ Example:
 ```
   
 """
-function MinF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.minf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function minf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.minf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 minsi
 
 """
-function MinSI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.minsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function minsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.minsi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 minui
 
 """
-function MinUI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.minui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function minui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.minui", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 mulf
@@ -993,47 +1001,48 @@ TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
   
 """
-function MulF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.mulf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function mulf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.mulf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 muli
 
 """
-function MulI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.muli", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function muli(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.muli", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 mulsi_extended
@@ -1057,23 +1066,25 @@ Example:
 ```
   
 """
-function MulSIExtended(; location::Location, low_::MLIRType, high_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [low_, high_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.mulsi_extended", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function mulsi_extended(lhs::Value, rhs::Value; low=nothing::Union{Nothing, MLIRType}, high=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (low != nothing) && push!(results, low)
+    (high != nothing) && push!(results, high)
+    
+    create_operation(
+        "arith.mulsi_extended", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 mului_extended
@@ -1097,23 +1108,25 @@ Example:
 ```
   
 """
-function MulUIExtended(; location::Location, low_::MLIRType, high_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [low_, high_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.mului_extended", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function mului_extended(lhs::Value, rhs::Value; low=nothing::Union{Nothing, MLIRType}, high=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (low != nothing) && push!(results, low)
+    (high != nothing) && push!(results, high)
+    
+    create_operation(
+        "arith.mului_extended", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 negf
@@ -1137,25 +1150,25 @@ Example:
 ```
   
 """
-function NegF(; location::Location, result_::MLIRType, operand_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [operand_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.negf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function negf(operand::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[operand, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.negf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 ori
@@ -1179,47 +1192,48 @@ Example:
 ```
   
 """
-function OrI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.ori", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function ori(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.ori", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 remf
 
 """
-function RemF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.remf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function remf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.remf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 remsi
@@ -1244,23 +1258,24 @@ Example:
 ```
   
 """
-function RemSI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.remsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function remsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.remsi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 remui
@@ -1285,23 +1300,24 @@ Example:
 ```
   
 """
-function RemUI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.remui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function remui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.remui", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 sitofp
@@ -1312,23 +1328,23 @@ rounded using the default rounding mode. When operating on vectors, casts
 elementwise.
   
 """
-function SIToFP(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.sitofp", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function sitofp(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.sitofp", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 shli
@@ -1345,23 +1361,24 @@ Example:
 ```
   
 """
-function ShLI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.shli", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function shli(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.shli", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 shrsi
@@ -1382,23 +1399,24 @@ Example:
 ```
   
 """
-function ShRSI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.shrsi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function shrsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.shrsi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 shrui
@@ -1416,23 +1434,24 @@ Example:
 ```
   
 """
-function ShRUI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.shrui", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function shrui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.shrui", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 subf
@@ -1459,47 +1478,48 @@ TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
   
 """
-function SubF(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value, fastmath_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-
-  (fastmath_ != nothing) && push!(attributes, make_named_attribute("fastmath", fastmath_))
-
-  create_operation(
-        "arith.subf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function subf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.subf", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 subi
 
 """
-function SubI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.subi", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function subi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.subi", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 truncf
@@ -1510,23 +1530,23 @@ If the value cannot be exactly represented, it is rounded using the default
 rounding mode. When operating on vectors, casts elementwise.
   
 """
-function TruncF(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.truncf", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function truncf(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.truncf", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 trunci
@@ -1547,23 +1567,23 @@ Example:
 ```
   
 """
-function TruncI(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.trunci", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function trunci(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.trunci", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 uitofp
@@ -1574,23 +1594,23 @@ rounded using the default rounding mode. When operating on vectors, casts
 elementwise.
   
 """
-function UIToFP(; location::Location, out_::MLIRType, in_::Value)
-  results = [out_]
-  operands = [in_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.uitofp", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
+function uitofp(in::Value; out::MLIRType, location=Location())
+    results = MLIRType[out, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "arith.uitofp", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 xori
@@ -1614,23 +1634,24 @@ Example:
 ```
   
 """
-function XOrI(; location::Location, result_::MLIRType, lhs_::Value, rhs_::Value)
-  results = [result_]
-  operands = [lhs_, rhs_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.xori", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = [], 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function xori(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.xori", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 select
@@ -1663,22 +1684,23 @@ Example:
 ```
   
 """
-function Select(; location::Location, result_::MLIRType, condition_::Value, true_value_::Value, false_value_::Value)
-  results = [result_]
-  operands = [condition_, true_value_, false_value_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "arith.select", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function select(condition::Value, true_value::Value, false_value::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[condition, true_value, false_value, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "arith.select", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
 
-end #Arith
+end # Arith

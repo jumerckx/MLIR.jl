@@ -1,15 +1,9 @@
 module Func
 
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation
+import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ..Dialects: namedattribute, operandsegmentsizes
+import ...API
 
-make_named_attribute(name, val) = make_named_attribute(name, Attribute(val))
-
-make_named_attribute(name, val::Attribute) = NamedAttribute(name, val)
-
-function make_named_attribute(name, val::NamedAttribute)
-  assert(true) # TODO(jm): check whether name of attribute is correct, getting the name might need to be added to IR.jl?
-  return val
-end
 
 """
 call_indirect
@@ -29,24 +23,23 @@ Example:
 ```
   
 """
-function CallIndirect(; location::Location, results_::Vector{MLIRType}, callee_::Value, callee_operands_::Vector{Value})
-  results = [results_...]
-  operands = [callee_, callee_operands_...]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "func.call_indirect", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function call_indirect(callee::Value, callee_operands::Vector{Value}; results::Vector{MLIRType}, location=Location())
+    results = MLIRType[results..., ]
+    operands = Value[callee, callee_operands..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "func.call_indirect", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 call
@@ -63,24 +56,23 @@ Example:
 ```
   
 """
-function Call(; location::Location, _unnamed0_::Vector{MLIRType}, operands_::Vector{Value}, callee_::Union{NamedAttribute, Attribute})
-  results = [_unnamed0_...]
-  operands = [operands_...]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("callee", callee_)]
-  
-  create_operation(
-        "func.call", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function call(operands::Vector{Value}; result_0::Vector{MLIRType}, callee::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result_0..., ]
+    operands = Value[operands..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("callee", callee), ]
+    
+    create_operation(
+        "func.call", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 constant
@@ -104,24 +96,23 @@ reference a function simplifies this
 ([rationale](../Rationale/Rationale.md#multithreading-the-compiler)).
   
 """
-function Constant(; location::Location, _unnamed0_::MLIRType, value_::Union{NamedAttribute, Attribute})
-  results = [_unnamed0_]
-  operands = []
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("value", value_)]
-  
-  create_operation(
-        "func.constant", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function constant(; result_0::MLIRType, value::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result_0, ]
+    operands = Value[]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("value", value), ]
+    
+    create_operation(
+        "func.constant", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 func
@@ -163,31 +154,29 @@ func.func @example_fn_attr() attributes {dialectName.attrName = false}
 ```
   
 """
-function Func_(; location::Location, body_::Region, sym_name_::Union{NamedAttribute, Attribute}, function_type_::Union{NamedAttribute, Attribute}, sym_visibility_=nothing::Union{Nothing, Union{NamedAttribute, String}}, arg_attrs_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}}, res_attrs_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}})
-  results = []
-  operands = []
-  regions = [body_]
-  successors = []
-  attributes = [make_named_attribute("sym_name", sym_name_), make_named_attribute("function_type", function_type_)]
-
-  (sym_visibility_ != nothing) && push!(attributes, make_named_attribute("sym_visibility", sym_visibility_))
-  (arg_attrs_ != nothing) && push!(attributes, make_named_attribute("arg_attrs", arg_attrs_))
-  (res_attrs_ != nothing) && push!(attributes, make_named_attribute("res_attrs", res_attrs_))
-
-  create_operation(
-        "func.func", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function func(; sym_name::Union{Attribute, NamedAttribute}, function_type::Union{Attribute, NamedAttribute}, sym_visibility=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arg_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, res_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, body::Region, location=Location())
+    results = MLIRType[]
+    operands = Value[]
+    owned_regions = Region[body, ]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("sym_name", sym_name), namedattribute("function_type", function_type), ]
+    (sym_visibility != nothing) && push!(attributes, namedattribute("sym_visibility", sym_visibility))
+    (arg_attrs != nothing) && push!(attributes, namedattribute("arg_attrs", arg_attrs))
+    (res_attrs != nothing) && push!(attributes, namedattribute("res_attrs", res_attrs))
+    
+    create_operation(
+        "func.func", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
 
-
 """
-return
+return_
 
 The `func.return` operation represents a return operation within a function.
 The operation takes variable number of operands and produces no results.
@@ -204,23 +193,22 @@ func.func @foo() : (i32, f8) {
 ```
   
 """
-function Return(; location::Location, operands_::Vector{Value})
-  results = []
-  operands = [operands_...]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "func.return", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function return_(operands::Vector{Value}; location=Location())
+    results = MLIRType[]
+    operands = Value[operands..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "func.return", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
 
-
-end #Func
+end # Func

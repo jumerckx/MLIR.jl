@@ -1,10 +1,12 @@
 module Builtin
 
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation
-import ..Dialects: make_named_attribute
+import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ..Dialects: namedattribute, operandsegmentsizes
+import ...API
+
 
 """
-module
+module_
 
 A `module` represents a top-level container operation. It contains a single
 [graph region](../LangRef.md#control-flow-and-ssacfg-regions) containing a single block
@@ -23,27 +25,25 @@ module {
 ```
   
 """
-function Module(; location::Location, bodyRegion_::Region, sym_name_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}}, sym_visibility_=nothing::Union{Nothing, Union{NamedAttribute, String}})
-  results = []
-  operands = []
-  regions = [bodyRegion_]
-  successors = []
-  attributes = []
-
-  (sym_name_ != nothing) && push!(attributes, make_named_attribute("sym_name", sym_name_))
-  (sym_visibility_ != nothing) && push!(attributes, make_named_attribute("sym_visibility", sym_visibility_))
-
-  create_operation(
-        "builtin.module", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function module_(; sym_name=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, sym_visibility=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, bodyRegion::Region, location=Location())
+    results = MLIRType[]
+    operands = Value[]
+    owned_regions = Region[bodyRegion, ]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (sym_name != nothing) && push!(attributes, namedattribute("sym_name", sym_name))
+    (sym_visibility != nothing) && push!(attributes, namedattribute("sym_visibility", sym_visibility))
+    
+    create_operation(
+        "builtin.module", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 unrealized_conversion_cast
@@ -80,23 +80,22 @@ Example:
 ```
   
 """
-function UnrealizedConversionCast(; location::Location, outputs_::Vector{MLIRType}, inputs_::Vector{Value})
-  results = [outputs_...]
-  operands = [inputs_...]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "builtin.unrealized_conversion_cast", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function unrealized_conversion_cast(inputs::Vector{Value}; outputs::Vector{MLIRType}, location=Location())
+    results = MLIRType[outputs..., ]
+    operands = Value[inputs..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "builtin.unrealized_conversion_cast", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
 
-
-end #Builtin
+end # Builtin

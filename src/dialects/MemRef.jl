@@ -1,8 +1,9 @@
-module Memref
+module Arith
 
+import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context
-import ..Dialects: make_named_attribute
+
 
 """
 assume_alignment
@@ -15,24 +16,23 @@ This operation doesn\'t affect the semantics of a correct program. It\'s for
 optimization only, and the optimization is best-effort.
   
 """
-function AssumeAlignment(; location::Location, memref_::Value, alignment_::Union{NamedAttribute, Int32})
-  results = []
-  operands = [memref_]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("alignment", alignment_)]
-  
-  create_operation(
-        "memref.assume_alignment", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function assume_alignment(memref::Value; alignment::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[]
+    operands = Value[memref, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("alignment", alignment), ]
+    
+    create_operation(
+        "memref.assume_alignment", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 atomic_rmw
@@ -52,24 +52,24 @@ Example:
 ```
   
 """
-function AtomicRMW(; location::Location, result_::MLIRType, value_::Value, memref_::Value, indices_::Vector{Value}, kind_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = [value_, memref_, indices_...]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("kind", kind_)]
-  
-  create_operation(
-        "memref.atomic_rmw", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function atomic_rmw(value::Value, memref::Value, indices::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, kind::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[]
+    operands = Value[value, memref, indices..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("kind", kind), ]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "memref.atomic_rmw", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 atomic_yield
@@ -78,24 +78,23 @@ atomic_yield
 GenericAtomicRMWOp region.
   
 """
-function AtomicYield(; location::Location, result_::Value)
-  results = []
-  operands = [result_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.atomic_yield", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function atomic_yield(result::Value; location=Location())
+    results = MLIRType[]
+    operands = Value[result, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.atomic_yield", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 copy
@@ -112,24 +111,23 @@ Source and destination are expected to have the same element type and shape.
 Otherwise, the result is undefined. They may have different layouts.
   
 """
-function Copy(; location::Location, source_::Value, target_::Value)
-  results = []
-  operands = [source_, target_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.copy", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function copy(source::Value, target::Value; location=Location())
+    results = MLIRType[]
+    operands = Value[source, target, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.copy", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 generic_atomic_rmw
@@ -156,24 +154,23 @@ Example:
 ```
   
 """
-function GenericAtomicRMW(; location::Location, result_::MLIRType, memref_::Value, indices_::Vector{Value}, atomic_body_::Region)
-  results = [result_]
-  operands = [memref_, indices_...]
-  regions = [atomic_body_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.generic_atomic_rmw", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function generic_atomic_rmw(memref::Value, indices::Vector{Value}; result::MLIRType, atomic_body::Region, location=Location())
+    results = MLIRType[result, ]
+    operands = Value[memref, indices..., ]
+    owned_regions = Region[atomic_body, ]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.generic_atomic_rmw", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 load
@@ -214,24 +211,24 @@ techniques. This is possible because of the
 in these contexts.
   
 """
-function Load(; location::Location, result_::MLIRType, memref_::Value, indices_::Vector{Value}, nontemporal_=nothing::Union{Nothing, Union{NamedAttribute, Bool}})
-  results = [result_]
-  operands = [memref_, indices_...]
-  regions = []
-  successors = []
-  attributes = []
-
-  (nontemporal_ != nothing) && push!(attributes, make_named_attribute("nontemporal", nontemporal_))
-
-  create_operation(
-        "memref.load", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function load(memref::Value, indices::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, nontemporal=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[memref, indices..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (nontemporal != nothing) && push!(attributes, namedattribute("nontemporal", nontemporal))
+    
+    create_operation(
+        "memref.load", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
 
 """
@@ -276,28 +273,25 @@ boundary.
 ```
   
 """
-function Alloc(; location::Location, memref_::MLIRType, dynamicSizes_::Vector{Value}, symbolOperands_::Vector{Value}, alignment_=nothing::Union{Nothing, Union{NamedAttribute, Int64}})
-  results = [memref_]
-  operands = [dynamicSizes_..., symbolOperands_...]
-  regions = []
-  successors = []
-  attributes = []
-
-  (alignment_ != nothing) && push!(attributes, make_named_attribute("alignment", alignment_))
-
-  push!(attributes, make_named_attribute("operand_segment_sizes", Int32[]))
-  
-  create_operation(
-        "memref.alloc", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function alloc(dynamicSizes::Vector{Value}, symbolOperands::Vector{Value}; memref::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[memref, ]
+    operands = Value[dynamicSizes..., symbolOperands..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    push!(attributes, operandsegmentsizes([length(dynamicSizes), length(symbolOperands), ]))
+    (alignment != nothing) && push!(attributes, namedattribute("alignment", alignment))
+    
+    create_operation(
+        "memref.alloc", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 alloca
@@ -337,28 +331,25 @@ an alignment on any convenient boundary compatible with the type will be
 chosen.
   
 """
-function Alloca(; location::Location, memref_::MLIRType, dynamicSizes_::Vector{Value}, symbolOperands_::Vector{Value}, alignment_=nothing::Union{Nothing, Union{NamedAttribute, Int64}})
-  results = [memref_]
-  operands = [dynamicSizes_..., symbolOperands_...]
-  regions = []
-  successors = []
-  attributes = []
-
-  (alignment_ != nothing) && push!(attributes, make_named_attribute("alignment", alignment_))
-
-  push!(attributes, make_named_attribute("operand_segment_sizes", Int32[]))
-  
-  create_operation(
-        "memref.alloca", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function alloca(dynamicSizes::Vector{Value}, symbolOperands::Vector{Value}; memref::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[memref, ]
+    operands = Value[dynamicSizes..., symbolOperands..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    push!(attributes, operandsegmentsizes([length(dynamicSizes), length(symbolOperands), ]))
+    (alignment != nothing) && push!(attributes, namedattribute("alignment", alignment))
+    
+    create_operation(
+        "memref.alloca", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 alloca_scope
@@ -395,27 +386,26 @@ If `memref.alloca_scope` returns no value, the `memref.alloca_scope.return ` can
 be left out, and will be inserted implicitly.
   
 """
-function AllocaScope(; location::Location, results_::Vector{MLIRType}, bodyRegion_::Region)
-  results = [results_...]
-  operands = []
-  regions = [bodyRegion_]
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.alloca_scope", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function alloca_scope(; results::Vector{MLIRType}, bodyRegion::Region, location=Location())
+    results = MLIRType[results..., ]
+    operands = Value[]
+    owned_regions = Region[bodyRegion, ]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.alloca_scope", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
 
-
 """
-alloca_scope.return
+alloca_scope_return
 
 `memref.alloca_scope.return` operation returns zero or more SSA values
 from the region within `memref.alloca_scope`. If no values are returned,
@@ -427,24 +417,23 @@ memref.alloca_scope.return %value
 ```
   
 """
-function AllocaScopeReturn(; location::Location, results_::Vector{Value})
-  results = []
-  operands = [results_...]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.alloca_scope.return", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function alloca_scope_return(results::Vector{Value}; location=Location())
+    results = MLIRType[]
+    operands = Value[results..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.alloca_scope.return", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 cast
@@ -503,24 +492,23 @@ Erase rank information.
 ```
   
 """
-function Cast(; location::Location, dest_::MLIRType, source_::Value)
-  results = [dest_]
-  operands = [source_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.cast", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function cast(source::Value; dest::MLIRType, location=Location())
+    results = MLIRType[dest, ]
+    operands = Value[source, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.cast", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 collapse_shape
@@ -566,24 +554,23 @@ Note: This op currently assumes that the inner strides are of the
 source/result layout map are the faster-varying ones.
   
 """
-function CollapseShape(; location::Location, result_::MLIRType, src_::Value, reassociation_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = [src_]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("reassociation", reassociation_)]
-  
-  create_operation(
-        "memref.collapse_shape", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function collapse_shape(src::Value; result::MLIRType, reassociation::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result, ]
+    operands = Value[src, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("reassociation", reassociation), ]
+    
+    create_operation(
+        "memref.collapse_shape", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 dealloc
@@ -601,24 +588,23 @@ memref.dealloc %0 : memref<8x64xf32,  affine_map<(d0, d1) -> (d0, d1), 1>>
 ```
   
 """
-function Dealloc(; location::Location, memref_::Value)
-  results = []
-  operands = [memref_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.dealloc", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function dealloc(memref::Value; location=Location())
+    results = MLIRType[]
+    operands = Value[memref, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.dealloc", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 dim
@@ -646,24 +632,24 @@ Example:
 ```
   
 """
-function Dim(; location::Location, result_::MLIRType, source_::Value, index_::Value)
-  results = [result_]
-  operands = [source_, index_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.dim", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function dim(source::Value, index::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[source, index, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    
+    create_operation(
+        "memref.dim", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 dma_start
@@ -713,24 +699,23 @@ multiple stride levels.
 TODO: Consider replacing src/dst memref indices with view memrefs.
   
 """
-function DmaStart(; location::Location, operands_::Vector{Value})
-  results = []
-  operands = [operands_...]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.dma_start", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function dma_start(operands::Vector{Value}; location=Location())
+    results = MLIRType[]
+    operands = Value[operands..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.dma_start", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 dma_wait
@@ -753,24 +738,23 @@ Example:
  ```
   
 """
-function DmaWait(; location::Location, tagMemRef_::Value, tagIndices_::Vector{Value}, numElements_::Value)
-  results = []
-  operands = [tagMemRef_, tagIndices_..., numElements_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.dma_wait", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function dma_wait(tagMemRef::Value, tagIndices::Vector{Value}, numElements::Value; location=Location())
+    results = MLIRType[]
+    operands = Value[tagMemRef, tagIndices..., numElements, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.dma_wait", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 expand_shape
@@ -815,24 +799,23 @@ Note: This op currently assumes that the inner strides are of the
 source/result layout map are the faster-varying ones.
   
 """
-function ExpandShape(; location::Location, result_::MLIRType, src_::Value, reassociation_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = [src_]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("reassociation", reassociation_)]
-  
-  create_operation(
-        "memref.expand_shape", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function expand_shape(src::Value; result::MLIRType, reassociation::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result, ]
+    operands = Value[src, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("reassociation", reassociation), ]
+    
+    create_operation(
+        "memref.expand_shape", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 extract_aligned_pointer_as_index
@@ -857,24 +840,24 @@ Example:
 ```
   
 """
-function ExtractAlignedPointerAsIndex(; location::Location, aligned_pointer_::MLIRType, source_::Value)
-  results = [aligned_pointer_]
-  operands = [source_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.extract_aligned_pointer_as_index", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function extract_aligned_pointer_as_index(source::Value; aligned_pointer=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[source, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (aligned_pointer != nothing) && push!(results, aligned_pointer)
+    
+    create_operation(
+        "memref.extract_aligned_pointer_as_index", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 extract_strided_metadata
@@ -921,24 +904,27 @@ Example:
 ```
   
 """
-function ExtractStridedMetadata(; location::Location, base_buffer_::MLIRType, offset_::MLIRType, sizes_::Vector{MLIRType}, strides_::Vector{MLIRType}, source_::Value)
-  results = [base_buffer_, offset_, sizes_..., strides_...]
-  operands = [source_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.extract_strided_metadata", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function extract_strided_metadata(source::Value; base_buffer=nothing::Union{Nothing, MLIRType}, offset=nothing::Union{Nothing, MLIRType}, sizes=nothing::Union{Nothing, Vector{MLIRType}}, strides=nothing::Union{Nothing, Vector{MLIRType}}, location=Location())
+    results = MLIRType[]
+    operands = Value[source, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (base_buffer != nothing) && push!(results, base_buffer)
+    (offset != nothing) && push!(results, offset)
+    (sizes != nothing) && push!(results, sizes...)
+    (strides != nothing) && push!(results, strides...)
+    
+    create_operation(
+        "memref.extract_strided_metadata", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 get_global
@@ -955,24 +941,23 @@ Example:
 ```
   
 """
-function GetGlobal(; location::Location, result_::MLIRType, name_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = []
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("name", name_)]
-  
-  create_operation(
-        "memref.get_global", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function get_global(; result::MLIRType, name::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result, ]
+    operands = Value[]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("name", name), ]
+    
+    create_operation(
+        "memref.get_global", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 global
@@ -1013,29 +998,27 @@ memref.global constant @c : memref<2xi32> = dense<1, 4>
 ```
   
 """
-function Global(; location::Location, sym_name_::Union{NamedAttribute, Attribute}, sym_visibility_=nothing::Union{Nothing, Union{NamedAttribute, String}}, type_::Union{NamedAttribute, Attribute}, initial_value_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}}, constant_=nothing::Union{Nothing, Union{NamedAttribute, Attribute}}, alignment_=nothing::Union{Nothing, Union{NamedAttribute, Int64}})
-  results = []
-  operands = []
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("sym_name", sym_name_), make_named_attribute("type", type_)]
-
-  (sym_visibility_ != nothing) && push!(attributes, make_named_attribute("sym_visibility", sym_visibility_))
-  (initial_value_ != nothing) && push!(attributes, make_named_attribute("initial_value", initial_value_))
-  (constant_ != nothing) && push!(attributes, make_named_attribute("constant", constant_))
-  (alignment_ != nothing) && push!(attributes, make_named_attribute("alignment", alignment_))
-
-  create_operation(
-        "memref.global", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function global(; sym_name::Union{Attribute, NamedAttribute}, sym_visibility=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, type::Union{Attribute, NamedAttribute}, initial_value=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, constant=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("sym_name", sym_name), namedattribute("type", type), ]
+    (sym_visibility != nothing) && push!(attributes, namedattribute("sym_visibility", sym_visibility))
+    (initial_value != nothing) && push!(attributes, namedattribute("initial_value", initial_value))
+    (constant != nothing) && push!(attributes, namedattribute("constant", constant))
+    (alignment != nothing) && push!(attributes, namedattribute("alignment", alignment))
+    
+    create_operation(
+        "memref.global", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 memory_space_cast
@@ -1063,24 +1046,23 @@ Example:
 ```
   
 """
-function MemorySpaceCast(; location::Location, dest_::MLIRType, source_::Value)
-  results = [dest_]
-  operands = [source_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.memory_space_cast", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function memory_space_cast(source::Value; dest::MLIRType, location=Location())
+    results = MLIRType[dest, ]
+    operands = Value[source, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.memory_space_cast", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 prefetch
@@ -1101,24 +1083,23 @@ and specifies whether the prefetch is performed on data cache or on
 instruction cache.
   
 """
-function Prefetch(; location::Location, memref_::Value, indices_::Vector{Value}, isWrite_::Union{NamedAttribute, Bool}, localityHint_::Union{NamedAttribute, Int32}, isDataCache_::Union{NamedAttribute, Bool})
-  results = []
-  operands = [memref_, indices_...]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("isWrite", isWrite_), make_named_attribute("localityHint", localityHint_), make_named_attribute("isDataCache", isDataCache_)]
-  
-  create_operation(
-        "memref.prefetch", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function prefetch(memref::Value, indices::Vector{Value}; isWrite::Union{Attribute, NamedAttribute}, localityHint::Union{Attribute, NamedAttribute}, isDataCache::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[]
+    operands = Value[memref, indices..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("isWrite", isWrite), namedattribute("localityHint", localityHint), namedattribute("isDataCache", isDataCache), ]
+    
+    create_operation(
+        "memref.prefetch", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 rank
@@ -1133,24 +1114,24 @@ Example:
 ```
   
 """
-function Rank(; location::Location, _unnamed0_::MLIRType, memref_::Value)
-  results = [_unnamed0_]
-  operands = [memref_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.rank", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
-        result_inference=false
-      )
+function rank(memref::Value; result_0=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
+    operands = Value[memref, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result_0 != nothing) && push!(results, result_0)
+    
+    create_operation(
+        "memref.rank", location,
+        results=(length(results) == 0 ? nothing : results),
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
+        result_inference=(length(results) == 0 ? true : false)
+    )
 end
-
 
 """
 realloc
@@ -1211,28 +1192,25 @@ behavior.
 ```
   
 """
-function Realloc(; location::Location, _unnamed0_::MLIRType, source_::Value, dynamicResultSize_=nothing::Union{Nothing, Value}, alignment_=nothing::Union{Nothing, Union{NamedAttribute, Int64}})
-  results = [_unnamed0_]
-  operands = [source_]
-
-  (dynamicResultSize_ != nothing) && push!(operands, dynamicResultSize_)
-regions = []
-  successors = []
-  attributes = []
-
-  (alignment_ != nothing) && push!(attributes, make_named_attribute("alignment", alignment_))
-
-  create_operation(
-        "memref.realloc", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function realloc(source::Value, dynamicResultSize=nothing::Union{Nothing, Value}; result_0::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[result_0, ]
+    operands = Value[source, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (dynamicResultSize != nothing) && push!(operands, dynamicResultSize)
+    (alignment != nothing) && push!(attributes, namedattribute("alignment", alignment))
+    
+    create_operation(
+        "memref.realloc", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 reinterpret_cast
@@ -1273,31 +1251,24 @@ means that `%dst`\'s descriptor will be:
 ```
   
 """
-function ReinterpretCast(; location::Location, result_::MLIRType, source_::Value, offsets_::Vector{Value}, sizes_::Vector{Value}, strides_::Vector{Value}, static_offsets_::Union{NamedAttribute, Attribute}, static_sizes_::Union{NamedAttribute, Attribute}, static_strides_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = [source_, offsets_..., sizes_..., strides_...]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("static_offsets", static_offsets_), make_named_attribute("static_sizes", static_sizes_), make_named_attribute("static_strides", static_strides_)]
-  
-  # push!(attributes, make_named_attribute("operand_segment_sizes", Int32[]))
-  push!(attributes, make_named_attribute("operand_segment_sizes", Attribute(API.mlirDenseI32ArrayGet(
-    context().context,
-    4,
-    Int32[1, length(offsets_), length(sizes_), length(strides_)]))))
-
-  
-  create_operation(
-        "memref.reinterpret_cast", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function reinterpret_cast(source::Value, offsets::Vector{Value}, sizes::Vector{Value}, strides::Vector{Value}; result::MLIRType, static_offsets::Union{Attribute, NamedAttribute}, static_sizes::Union{Attribute, NamedAttribute}, static_strides::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result, ]
+    operands = Value[source, offsets..., sizes..., strides..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("static_offsets", static_offsets), namedattribute("static_sizes", static_sizes), namedattribute("static_strides", static_strides), ]
+    push!(attributes, operandsegmentsizes([1, length(offsets), length(sizes), length(strides), ]))
+    
+    create_operation(
+        "memref.reinterpret_cast", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 reshape
@@ -1335,24 +1306,23 @@ Result type is unranked.
 ```
   
 """
-function Reshape(; location::Location, result_::MLIRType, source_::Value, shape_::Value)
-  results = [result_]
-  operands = [source_, shape_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.reshape", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function reshape(source::Value, shape::Value; result::MLIRType, location=Location())
+    results = MLIRType[result, ]
+    operands = Value[source, shape, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.reshape", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 store
@@ -1385,26 +1355,24 @@ techniques. This is possible because of the
 in these contexts.
   
 """
-function Store(; location::Location, value_::Value, memref_::Value, indices_::Vector{Value}, nontemporal_=nothing::Union{Nothing, Union{NamedAttribute, Bool}})
-  results = []
-  operands = [value_, memref_, indices_...]
-  regions = []
-  successors = []
-  attributes = []
-
-  (nontemporal_ != nothing) && push!(attributes, make_named_attribute("nontemporal", nontemporal_))
-
-  create_operation(
-        "memref.store", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function store(value::Value, memref::Value, indices::Vector{Value}; nontemporal=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[value, memref, indices..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (nontemporal != nothing) && push!(attributes, namedattribute("nontemporal", nontemporal))
+    
+    create_operation(
+        "memref.store", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 transpose
@@ -1420,24 +1388,23 @@ Example:
 ```
   
 """
-function Transpose(; location::Location, _unnamed0_::MLIRType, in_::Value, permutation_::Union{NamedAttribute, Attribute})
-  results = [_unnamed0_]
-  operands = [in_]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("permutation", permutation_)]
-  
-  create_operation(
-        "memref.transpose", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function transpose(in::Value; result_0::MLIRType, permutation::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result_0, ]
+    operands = Value[in, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("permutation", permutation), ]
+    
+    create_operation(
+        "memref.transpose", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 view
@@ -1478,24 +1445,23 @@ Example:
 ```
   
 """
-function View(; location::Location, _unnamed0_::MLIRType, source_::Value, byte_shift_::Value, sizes_::Vector{Value})
-  results = [_unnamed0_]
-  operands = [source_, byte_shift_, sizes_...]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.view", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function view(source::Value, byte_shift::Value, sizes::Vector{Value}; result_0::MLIRType, location=Location())
+    results = MLIRType[result_0, ]
+    operands = Value[source, byte_shift, sizes..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.view", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 subview
@@ -1631,26 +1597,24 @@ Example 5:
 ```
   
 """
-function SubView(; location::Location, result_::MLIRType, source_::Value, offsets_::Vector{Value}, sizes_::Vector{Value}, strides_::Vector{Value}, static_offsets_::Union{NamedAttribute, Attribute}, static_sizes_::Union{NamedAttribute, Attribute}, static_strides_::Union{NamedAttribute, Attribute})
-  results = [result_]
-  operands = [source_, offsets_..., sizes_..., strides_...]
-  regions = []
-  successors = []
-  attributes = [make_named_attribute("static_offsets", static_offsets_), make_named_attribute("static_sizes", static_sizes_), make_named_attribute("static_strides", static_strides_)]
-  
-  push!(attributes, make_named_attribute("operand_segment_sizes", Int32[]))
-  
-  create_operation(
-        "memref.subview", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function subview(source::Value, offsets::Vector{Value}, sizes::Vector{Value}, strides::Vector{Value}; result::MLIRType, static_offsets::Union{Attribute, NamedAttribute}, static_sizes::Union{Attribute, NamedAttribute}, static_strides::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[result, ]
+    operands = Value[source, offsets..., sizes..., strides..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("static_offsets", static_offsets), namedattribute("static_sizes", static_sizes), namedattribute("static_strides", static_strides), ]
+    push!(attributes, operandsegmentsizes([1, length(offsets), length(sizes), length(strides), ]))
+    
+    create_operation(
+        "memref.subview", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
-
 
 """
 tensor_store
@@ -1668,23 +1632,22 @@ memref.tensor_store %8, %10 : memref<4x?xf32, #layout, memspace0>
 ```
   
 """
-function TensorStore(; location::Location, tensor_::Value, memref_::Value)
-  results = []
-  operands = [tensor_, memref_]
-  regions = []
-  successors = []
-  attributes = []
-  
-  create_operation(
-        "memref.tensor_store", location, 
-        results = results, 
-        operands = operands,
-        owned_regions = regions, 
-        successors = successors, 
-        attributes = attributes,
+function tensor_store(tensor::Value, memref::Value; location=Location())
+    results = MLIRType[]
+    operands = Value[tensor, memref, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "memref.tensor_store", location,
+        results=results,
+        operands=operands,
+        owned_regions=owned_regions,
+        successors=successors,
+        attributes=attributes,
         result_inference=false
-      )
+    )
 end
 
-
-end #Memref
+end # Arith
