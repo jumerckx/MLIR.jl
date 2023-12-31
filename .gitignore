@@ -1,2 +1,4 @@
 Manifest.toml
 docs/build
+deps/tblgen/output
+beaver_test

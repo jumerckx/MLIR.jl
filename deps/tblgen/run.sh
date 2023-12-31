@@ -7,12 +7,13 @@ make mlir-jl-tblgen
 rm -f ./output/*.jl
 mkdir -p ./output
 
-LD_LIBRARY_PATH=/home/jumerckx/masterthesis/llvm-project/llvm/build_debug/lib/
-DIALECTS_PATH=/home/jumerckx/masterthesis/llvm-project/llvm/install_debug/include/mlir/Dialect/
-INCLUDE_PATH=/home/jumerckx/masterthesis/llvm-project/llvm/install_debug/include/
+LD_LIBRARY_PATH=/home/jumerckx/masterthesis/llvm-project/build/llvm_build/lib/
+# DIALECTS_PATH=/home/jumerckx/masterthesis/llvm-project/llvm/install_debug/include/mlir/Dialect/
+INCLUDE_PATH=/home/jumerckx/masterthesis/llvm-project/build/llvm_install/include/
 
 # LD_LIBRARY_PATH=/home/jumerckx/.julia/artifacts/7a30d5d08131c8d72e002314ee933895a1bed594/mlir/lib/
 # INCLUDE_PATH=/home/jumerckx/.julia/artifacts/7a30d5d08131c8d72e002314ee933895a1bed594/mlir/include/
+DIALECTS_PATH=/home/jumerckx/masterthesis/llvm-project/mlir/include/mlir/Dialect/
 
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Arith/IR/ArithOps.td -I$INCLUDE_PATH > output/Arith.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Shape/IR/ShapeOps.td -I$INCLUDE_PATH > output/Shape.jl

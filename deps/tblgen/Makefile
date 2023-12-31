@@ -1,5 +1,5 @@
 LLVM_DIR = /home/jumerckx/masterthesis/llvm-project/llvm
-llvmconfig = $(LLVM_DIR)/install_debug/bin/llvm-config
+llvmconfig = /home/jumerckx/masterthesis/llvm-project/build/llvm_install/bin/llvm-config
 
 CXXFLAGS = $(shell $(llvmconfig) --cxxflags)
 LDFLAGS = $(shell $(llvmconfig) --ldflags)
