@@ -1,6 +1,6 @@
 module arith
 
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: NamedAttribute, MLIRType, Value, AbstractValue, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -29,7 +29,7 @@ floating point tensor.
 TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
 """
-function addf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function addf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -67,9 +67,9 @@ has no standard attributes.
 %x = arith.addi %y, %z : tensor<4x?xi8>
 ```
 """
-function addi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function addi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[lhs, rhs, ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -104,7 +104,7 @@ indicates no overflow.
 %x:2 = arith.addui_extended %y, %z : tensor<4x?xi8>, tensor<4x?xi1>
 ```
 """
-function addui_extended(lhs::Value, rhs::Value; sum::MLIRType, overflow::MLIRType, location=Location())
+function addui_extended(lhs::AbstractValue, rhs::AbstractValue; sum::MLIRType, overflow::MLIRType, location=Location())
     results = MLIRType[sum, overflow, ]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -140,7 +140,7 @@ has no standard attributes.
 %x = arith.andi %y, %z : tensor<4x?xi8>
 ```
 """
-function andi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function andi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -174,7 +174,7 @@ endianness for the source and target types (e.g. float is big-endian and
 integer is little-endian) a proper lowering would add operations to swap the
 order of words in addition to the bitcast.
 """
-function bitcast(in::Value; out::MLIRType, location=Location())
+function bitcast(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -204,7 +204,7 @@ value divided by -1) is TBD; do NOT assume any specific behavior.
 %a = arith.ceildivsi %b, %c : i64
 ```
 """
-function ceildivsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function ceildivsi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -237,7 +237,7 @@ behavior.
 %a = arith.ceildivui %b, %c : i64
 ```
 """
-function ceildivui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function ceildivui(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -280,7 +280,7 @@ attribute by the parser.
 %r3 = \"arith.cmpf\"(%0, %1) {predicate: 0} : (f8, f8) -> i1
 ```
 """
-function cmpf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
+function cmpf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -361,7 +361,7 @@ complement or large positives
     : (vector<4xi64>, vector<4xi64>) -> vector<4xi1>
 ```
 """
-function cmpi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
+function cmpi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -414,7 +414,7 @@ end
 `divf`
 
 """
-function divf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function divf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -453,7 +453,7 @@ value divided by -1) is TBD; do NOT assume any specific behavior.
 %x = arith.divsi %y, %z : tensor<4x?xi8>
 ```
 """
-function divsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function divsi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -492,7 +492,7 @@ behavior.
 %x = arith.divui %y, %z : tensor<4x?xi8>
 ```
 """
-function divui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function divui(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -515,7 +515,7 @@ Cast a floating-point value to a larger floating-point-typed value.
 The destination type must to be strictly wider than the source type.
 When operating on vectors, casts elementwise.
 """
-function extf(in::Value; out::MLIRType, location=Location())
+function extf(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -550,7 +550,7 @@ of the most-significant bit of the input.
 %5 = arith.extsi %0 : vector<2 x i32> to vector<2 x i64>
 ```
 """
-function extsi(in::Value; out::MLIRType, location=Location())
+function extsi(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -584,7 +584,7 @@ The top-most (N - M) bits of the output are filled with zeros.
   %5 = arith.extui %0 : vector<2 x i32> to vector<2 x i64>
 ```
 """
-function extui(in::Value; out::MLIRType, location=Location())
+function extui(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -606,7 +606,7 @@ Cast from a value interpreted as floating-point to the nearest (rounding
 towards zero) signed integer value. When operating on vectors, casts
 elementwise.
 """
-function fptosi(in::Value; out::MLIRType, location=Location())
+function fptosi(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -628,7 +628,7 @@ Cast from a value interpreted as floating-point to the nearest (rounding
 towards zero) unsigned integer value. When operating on vectors, casts
 elementwise.
 """
-function fptoui(in::Value; out::MLIRType, location=Location())
+function fptoui(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -659,7 +659,7 @@ value divided by -1) is TBD; do NOT assume any specific behavior.
 
 ```
 """
-function floordivsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function floordivsi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -683,7 +683,7 @@ vectors. Index is an integer of platform-specific bit width. If casting to
 a wider integer, the value is sign-extended. If casting to a narrower
 integer, the value is truncated.
 """
-function index_cast(in::Value; out::MLIRType, location=Location())
+function index_cast(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -706,7 +706,7 @@ vectors. Index is an integer of platform-specific bit width. If casting to
 a wider integer, the value is zero-extended. If casting to a narrower
 integer, the value is truncated.
 """
-function index_castui(in::Value; out::MLIRType, location=Location())
+function index_castui(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -740,7 +740,7 @@ If one of the arguments is NaN, then the result is also NaN.
 %a = arith.maxf %b, %c : f64
 ```
 """
-function maxf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function maxf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -761,7 +761,7 @@ end
 `maxsi`
 
 """
-function maxsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function maxsi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -781,7 +781,7 @@ end
 `maxui`
 
 """
-function maxui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function maxui(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -816,7 +816,7 @@ If one of the arguments is NaN, then the result is also NaN.
 %a = arith.minf %b, %c : f64
 ```
 """
-function minf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function minf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -837,7 +837,7 @@ end
 `minsi`
 
 """
-function minsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function minsi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -857,7 +857,7 @@ end
 `minui`
 
 """
-function minui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function minui(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -897,7 +897,7 @@ floating point tensor.
 TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
 """
-function mulf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function mulf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -918,7 +918,7 @@ end
 `muli`
 
 """
-function muli(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function muli(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -955,7 +955,7 @@ the same operands.
 %x:2 = arith.mulsi_extended %y, %z : tensor<4x?xi8>
 ```
 """
-function mulsi_extended(lhs::Value, rhs::Value; low=nothing::Union{Nothing, MLIRType}, high=nothing::Union{Nothing, MLIRType}, location=Location())
+function mulsi_extended(lhs::AbstractValue, rhs::AbstractValue; low=nothing::Union{Nothing, MLIRType}, high=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -993,7 +993,7 @@ the same operands.
 %x:2 = arith.mului_extended %y, %z : tensor<4x?xi8>
 ```
 """
-function mului_extended(lhs::Value, rhs::Value; low=nothing::Union{Nothing, MLIRType}, high=nothing::Union{Nothing, MLIRType}, location=Location())
+function mului_extended(lhs::AbstractValue, rhs::AbstractValue; low=nothing::Union{Nothing, MLIRType}, high=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1031,7 +1031,7 @@ It has no standard attributes.
 %x = arith.negf %y : tensor<4x?xf8>
 ```
 """
-function negf(operand::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function negf(operand::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[operand, ]
     owned_regions = Region[]
@@ -1069,7 +1069,7 @@ standard attributes.
 %x = arith.ori %y, %z : tensor<4x?xi8>
 ```
 """
-function ori(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function ori(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1089,7 +1089,7 @@ end
 `remf`
 
 """
-function remf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function remf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1128,7 +1128,7 @@ behavior.
 %x = arith.remsi %y, %z : tensor<4x?xi8>
 ```
 """
-function remsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function remsi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1166,7 +1166,7 @@ behavior.
 %x = arith.remui %y, %z : tensor<4x?xi8>
 ```
 """
-function remui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function remui(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1190,7 +1190,7 @@ floating-point value. If the value cannot be exactly represented, it is
 rounded using the default rounding mode. When operating on vectors, casts
 elementwise.
 """
-function sitofp(in::Value; out::MLIRType, location=Location())
+function sitofp(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -1219,7 +1219,7 @@ amount. The low order bits are filled with zeros.
 %3 = arith.shli %1, %2 : (i8, i8) -> i8    // %3 is 0b00101000
 ```
 """
-function shli(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function shli(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1253,7 +1253,7 @@ value (which means that the sign of the value is preserved).
 %5 = arith.shrsi %4, %2 : (i8, i8) -> i8   // %5 is 0b00001100
 ```
 """
-function shrsi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function shrsi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1284,7 +1284,7 @@ always filled with zeros.
 %3 = arith.shrui %1, %2 : (i8, i8) -> i8   // %3 is 0b00010100
 ```
 """
-function shrui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function shrui(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1324,7 +1324,7 @@ floating point tensor.
 TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
 """
-function subf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function subf(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1345,7 +1345,7 @@ end
 `subi`
 
 """
-function subi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function subi(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1369,7 +1369,7 @@ The destination type must be strictly narrower than the source type.
 If the value cannot be exactly represented, it is rounded using the default
 rounding mode. When operating on vectors, casts elementwise.
 """
-function truncf(in::Value; out::MLIRType, location=Location())
+function truncf(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -1402,7 +1402,7 @@ The top-most (N - M) bits of the input are discarded.
   %5 = arith.trunci %0 : vector<2 x i32> to vector<2 x i16>
 ```
 """
-function trunci(in::Value; out::MLIRType, location=Location())
+function trunci(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -1425,7 +1425,7 @@ floating-point value. If the value cannot be exactly represented, it is
 rounded using the default rounding mode. When operating on vectors, casts
 elementwise.
 """
-function uitofp(in::Value; out::MLIRType, location=Location())
+function uitofp(in::AbstractValue; out::MLIRType, location=Location())
     results = MLIRType[out, ]
     operands = Value[in, ]
     owned_regions = Region[]
@@ -1461,7 +1461,7 @@ has no standard attributes.
 %x = arith.xori %y, %z : tensor<4x?xi8>
 ```
 """
-function xori(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function xori(lhs::AbstractValue, rhs::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1507,7 +1507,7 @@ or tensor is chosen.
 %vx = arith.select %cond, %vtrue, %vfalse : vector<42xf32>
 ```
 """
-function select(condition::Value, true_value::Value, false_value::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function select(condition::AbstractValue, true_value::AbstractValue, false_value::AbstractValue; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[condition, true_value, false_value, ]
     owned_regions = Region[]

@@ -451,7 +451,9 @@ Base.convert(::Type{MlirAttribute}, named_attribute::NamedAttribute) =
 
 ### Value
 
-struct Value
+abstract type AbstractValue end
+
+struct Value <: AbstractValue
     value::MlirValue
 
     Value(value) = begin
@@ -462,11 +464,11 @@ end
 
 get_type(value) = MLIRType(API.mlirValueGetType(value))
 
-Base.convert(::Type{MlirValue}, value::Value) = value.value
-Base.size(value::Value) = Base.size(get_type(value))
-Base.ndims(value::Value) = Base.ndims(get_type(value))
+Base.convert(::Type{MlirValue}, value::AbstractValue) = value.value
+Base.size(value::AbstractValue) = Base.size(get_type(value))
+Base.ndims(value::AbstractValue) = Base.ndims(get_type(value))
 
-function Base.show(io::IO, value::Value)
+function Base.show(io::IO, value::AbstractValue)
     c_print_callback = @cfunction(print_callback, Cvoid, (MlirStringRef, Any))
     ref = Ref(io)
     API.mlirValuePrint(value, c_print_callback, ref)
@@ -481,7 +483,7 @@ function set_type!(value, type)
     value
 end
 
-function get_owner(value::Value)
+function get_owner(value::AbstractValue)
     if is_a_block_argument(value)
         raw_block = API.mlirBlockArgumentGetOwner(value)
         if mlirIsNull(raw_block)
@@ -793,7 +795,7 @@ Base.parse(::Type{MModule}, module_) = MModule(API.mlirModuleCreateParse(context
 macro mlir_str(code)
     quote
         ctx = Context()
-        parse(MModule, code)
+        parse(MModule, $code)
     end
 end
 
