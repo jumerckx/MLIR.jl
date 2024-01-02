@@ -1,7 +1,7 @@
 module arith
 
 import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
-import ..Dialects: namedattribute, operandsegmentsizes, @mlirop, MLIRCompilation, currentblock
+import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
 
@@ -67,8 +67,7 @@ has no standard attributes.
 %x = arith.addi %y, %z : tensor<4x?xi8>
 ```
 """
-
-@mlirop function addi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
+function addi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
