@@ -94,7 +94,7 @@ the order within the handles.
 Fails silently if the length of the parameter payload does not match the length of
 the target payload. Does not consume the provided handles.
 """
-function annotate(target::Value, param=nothing::Union{Nothing, Value}; name::Union{Attribute, NamedAttribute}, location=Location())
+function annotate(target::Value, param=nothing::Union{Nothing, Value}; name, location=Location())
     results = MLIRType[]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -192,7 +192,7 @@ does not produce any handles.
 
 This transform fails silently if the dialect conversion was unsuccessful.
 """
-function apply_conversion_patterns(target::Value; legal_ops=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, illegal_ops=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, legal_dialects=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, illegal_dialects=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, partial_conversion=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, patterns::Region, default_type_converter_region::Vector{Region}, location=Location())
+function apply_conversion_patterns(target::Value; legal_ops=nothing, illegal_ops=nothing, legal_dialects=nothing, illegal_dialects=nothing, partial_conversion=nothing, patterns::Region, default_type_converter_region::Vector{Region}, location=Location())
     results = MLIRType[]
     operands = Value[target, ]
     owned_regions = Region[patterns, default_type_converter_region..., ]
@@ -297,7 +297,7 @@ This transform also fails silently if the pattern application did not
 converge within the default number of iterations/rewrites of the greedy
 pattern rewrite driver.
 """
-function apply_patterns(target::Value; apply_cse=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, patterns::Region, location=Location())
+function apply_patterns(target::Value; apply_cse=nothing, patterns::Region, location=Location())
     results = MLIRType[]
     operands = Value[target, ]
     owned_regions = Region[patterns, ]
@@ -332,7 +332,7 @@ that they operate on, so the target op is guaranteed to still exist. The
 target handle is invalidated because a pass may arbitrarily modify the body
 of targeted ops.
 """
-function apply_registered_pass(target::Value; result::MLIRType, pass_name::Union{Attribute, NamedAttribute}, options=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function apply_registered_pass(target::Value; result::MLIRType, pass_name, options=nothing, location=Location())
     results = MLIRType[result, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -359,7 +359,7 @@ supported. Any conversion target modifications by interface implementations
 are currently ignored. The conversion target is fully specified by the
 enclosing \"apply_conversion_patterns\" op.
 """
-function apply_conversion_patterns_dialect_to_llvm(; dialect_name::Union{Attribute, NamedAttribute}, location=Location())
+function apply_conversion_patterns_dialect_to_llvm(; dialect_name, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -453,7 +453,7 @@ the resulting handle is associated with an empty payload. The operation
 produces a definite failure if any of the applied matchers or actions
 produced a definite failure.
 """
-function foreach_match(root::Value; updated::MLIRType, restrict_root=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, matchers::Union{Attribute, NamedAttribute}, actions::Union{Attribute, NamedAttribute}, location=Location())
+function foreach_match(root::Value; updated::MLIRType, restrict_root=nothing, matchers, actions, location=Location())
     results = MLIRType[updated, ]
     operands = Value[root, ]
     owned_regions = Region[]
@@ -517,7 +517,7 @@ definitely fails.
 The return handle points to the consuming operations operations, which can
 be empty.
 """
-function get_consumers_of_result(target::Value; consumers::MLIRType, result_number::Union{Attribute, NamedAttribute}, location=Location())
+function get_consumers_of_result(target::Value; consumers::MLIRType, result_number, location=Location())
     results = MLIRType[consumers, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -582,7 +582,7 @@ If any of the given Payload IR ops has no such suitable parent, then:
   - if `allow_empty_results` is set, the result handle is empty
   - otherwise, the transformation produces a silenceable failure.
 """
-function get_parent_op(target::Value; parent::MLIRType, isolated_from_above=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, allow_empty_results=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, op_name=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, deduplicate=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, nth_parent=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function get_parent_op(target::Value; parent::MLIRType, isolated_from_above=nothing, allow_empty_results=nothing, op_name=nothing, deduplicate=nothing, nth_parent=nothing, location=Location())
     results = MLIRType[parent, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -612,7 +612,7 @@ a block argument), the transform silently fails.
 The return handle points to only the subset of successfully produced
 computational operations, which can be empty.
 """
-function get_producer_of_operand(target::Value; producer::MLIRType, operand_number::Union{Attribute, NamedAttribute}, location=Location())
+function get_producer_of_operand(target::Value; producer::MLIRType, operand_number, location=Location())
     results = MLIRType[producer, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -636,7 +636,7 @@ The handle defined by this Transform op corresponds to the OpResult with
 This transform fails silently if the targeted operation does not have enough
 results. It reads the target handle and produces the result handle.
 """
-function get_result(target::Value; result::MLIRType, result_number::Union{Attribute, NamedAttribute}, location=Location())
+function get_result(target::Value; result::MLIRType, result_number, location=Location())
     results = MLIRType[result, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -659,7 +659,7 @@ type(s) of the value(s) associated with the operand handle.
 
 This transform never fails.
 """
-function get_type(value::Value; type_param::MLIRType, elemental=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function get_type(value::Value; type_param::MLIRType, elemental=nothing, location=Location())
     results = MLIRType[type_param, ]
     operands = Value[value, ]
     owned_regions = Region[]
@@ -695,7 +695,7 @@ immediately regardless of the mode. The objects associated with the results
 of this operation are the same as those associated with the operands of the
 `transform.yield` in the referenced named sequence.
 """
-function include(operands::Vector{Value}; results::Vector{MLIRType}, target::Union{Attribute, NamedAttribute}, failure_propagation_mode::Union{Attribute, NamedAttribute}, location=Location())
+function include(operands::Vector{Value}; results::Vector{MLIRType}, target, failure_propagation_mode, location=Location())
     results = MLIRType[results..., ]
     operands = Value[operands..., ]
     owned_regions = Region[]
@@ -739,7 +739,7 @@ given operation names. Produces a silenceable failure otherwise.
 If more than one payload operation is associated with the operand handle,
 produces a definite failure.
 """
-function match_operation_name(operand_handle::Value; op_names::Union{Attribute, NamedAttribute}, location=Location())
+function match_operation_name(operand_handle::Value; op_names, location=Location())
     results = MLIRType[]
     operands = Value[operand_handle, ]
     owned_regions = Region[]
@@ -762,7 +762,7 @@ parameters relate as specified by the predicate (greater than, less than,
 equal to, or their combinations). Comparison treats all values as signed.
 Produces a silenceable failure otherwise.
 """
-function match_param_cmpi(param::Value, reference::Value; predicate::Union{Attribute, NamedAttribute}, location=Location())
+function match_param_cmpi(param::Value, reference::Value; predicate, location=Location())
     results = MLIRType[]
     operands = Value[param, reference, ]
     owned_regions = Region[]
@@ -789,7 +789,7 @@ first, then all Payload IR associated with the second handle and so on. If
 parameter more than once to the final list regardless of it coming from the
 same or different handles. Consumes the operands and produces a new handle.
 """
-function merge_handles(handles::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, deduplicate=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function merge_handles(handles::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, deduplicate=nothing, location=Location())
     results = MLIRType[]
     operands = Value[handles..., ]
     owned_regions = Region[]
@@ -833,7 +833,7 @@ trait and have the `transform.with_named_sequence` attribute attached.
 Named sequences may include other named sequences via `transform.include`,
 but recursion is *not* allowed.
 """
-function named_sequence(; sym_name::Union{Attribute, NamedAttribute}, function_type::Union{Attribute, NamedAttribute}, sym_visibility=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arg_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, res_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, body::Region, location=Location())
+function named_sequence(; sym_name, function_type, sym_visibility=nothing, arg_attrs=nothing, res_attrs=nothing, body::Region, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[body, ]
@@ -884,7 +884,7 @@ list containing the given attribute. The operation itself always succeeds,
 but the general association check may fail if the parameter type does not
 accept the given kind of attribute as valid.
 """
-function param_constant(; param::MLIRType, value::Union{Attribute, NamedAttribute}, location=Location())
+function param_constant(; param::MLIRType, value, location=Location())
     results = MLIRType[param, ]
     operands = Value[]
     owned_regions = Region[]
@@ -908,7 +908,7 @@ specified, the top-level op is dumped.
 
 This op is useful for printf-style debugging.
 """
-function print(target=nothing::Union{Nothing, Value}; name=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function print(target=nothing::Union{Nothing, Value}; name=nothing, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -978,7 +978,7 @@ The result payload ops are in the same relative order as the targeted ops.
 This transform op reads the `target` handle and produces the `result`
 handle. It reads the payload, but does not modify it.
 """
-function select(target::Value; result::MLIRType, op_name::Union{Attribute, NamedAttribute}, location=Location())
+function select(target::Value; result::MLIRType, op_name, location=Location())
     results = MLIRType[result, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -1044,7 +1044,7 @@ The body of the sequence terminates with an implicit or explicit
 `transform.yield` op. The operands of the terminator are returned as the
 results of the sequence op.
 """
-function sequence(root=nothing::Union{Nothing, Value}; extra_bindings::Vector{Value}, results::Vector{MLIRType}, failure_propagation_mode::Union{Attribute, NamedAttribute}, body::Region, location=Location())
+function sequence(root=nothing::Union{Nothing, Value}; extra_bindings::Vector{Value}, results::Vector{MLIRType}, failure_propagation_mode, body::Region, location=Location())
     results = MLIRType[results..., ]
     operands = Value[extra_bindings..., ]
     owned_regions = Region[body, ]
@@ -1085,7 +1085,7 @@ the remaining result handles are not mapped to any op. It also succeeds if
 `handle` is empty and `pass_through_empty_handle` is set to \"true\",
 regardless of `fail_on_payload_too_small`.
 """
-function split_handle(handle::Value; results::Vector{MLIRType}, pass_through_empty_handle=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, fail_on_payload_too_small=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, overflow_result=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function split_handle(handle::Value; results::Vector{MLIRType}, pass_through_empty_handle=nothing, fail_on_payload_too_small=nothing, overflow_result=nothing, location=Location())
     results = MLIRType[results..., ]
     operands = Value[handle, ]
     owned_regions = Region[]
@@ -1302,7 +1302,7 @@ op are bufferized to a new memory allocation, but not the op itself.
 This operation consumes the `target` handle and produces the
 `allocated_buffer` and `new_ops` handles. It always succeeds.
 """
-function structured_bufferize_to_allocation(target::Value; allocated_buffer::MLIRType, new_ops::MLIRType, memory_space=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, memcpy_op=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alloc_op=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, bufferize_destination_only=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, emit_dealloc=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_bufferize_to_allocation(target::Value; allocated_buffer::MLIRType, new_ops::MLIRType, memory_space=nothing, memcpy_op=nothing, alloc_op=nothing, bufferize_destination_only=nothing, emit_dealloc=nothing, location=Location())
     results = MLIRType[allocated_buffer, new_ops, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -1560,7 +1560,7 @@ end
 Tiles the operations pointed to by the target handle and fuses their
 producers greedily using the options provided as attributes.
 """
-function structured_fuse(target::Value; transformed::MLIRType, loops::Vector{MLIRType}, tile_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tile_interchange=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_fuse(target::Value; transformed::MLIRType, loops::Vector{MLIRType}, tile_sizes=nothing, tile_interchange=nothing, location=Location())
     results = MLIRType[transformed, loops..., ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -1625,7 +1625,7 @@ If any non-tensor.pad is passed, the transform emits a silenceable failure.
 The return handle points to only the subset of successfully created packing
 loop nests, which can be empty.
 """
-function structured_hoist_pad_build_packing_loop_nest(target::Value, loop::Value; packing_loop::MLIRType, transpose=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_hoist_pad_build_packing_loop_nest(target::Value, loop::Value; packing_loop::MLIRType, transpose=nothing, location=Location())
     results = MLIRType[packing_loop, ]
     operands = Value[target, loop, ]
     owned_regions = Region[]
@@ -1662,7 +1662,7 @@ transform succeeds. Otherwise the transform silently fails.
 The return handle points to only the subset of successfully hoisted
 tensor.pad operations, which can be empty.
 """
-function structured_hoist_pad(target::Value; transformed::MLIRType, num_loops::Union{Attribute, NamedAttribute}, transpose=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_hoist_pad(target::Value; transformed::MLIRType, num_loops, transpose=nothing, location=Location())
     results = MLIRType[transformed, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -1759,7 +1759,7 @@ If any interchange fails, the transform definitely fails.
 The return handle points to only the subset of successfully produced
 interchanged operations, which can be empty.
 """
-function structured_interchange(target::Value; transformed::MLIRType, iterator_interchange=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_interchange(target::Value; transformed::MLIRType, iterator_interchange=nothing, location=Location())
     results = MLIRType[transformed, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -1857,7 +1857,7 @@ linalg.copy / tensor.pad) among the targeted op. Otherwise, the operation
 always succeeds and returns a handle to the relevant tiled linalg.copy /
 tensor.pad op and the enclosing scf.forall op.
 """
-function structured_gpu_map_copy_to_threads(target::Value; forall_op::MLIRType, tiled_op::MLIRType, total_num_threads::Union{Attribute, NamedAttribute}, desired_bit_alignment::Union{Attribute, NamedAttribute}, location=Location())
+function structured_gpu_map_copy_to_threads(target::Value; forall_op::MLIRType, tiled_op::MLIRType, total_num_threads, desired_bit_alignment, location=Location())
     results = MLIRType[forall_op, tiled_op, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -1907,7 +1907,7 @@ Otherwise it succeeds.
 This operation does not consume the target handle and produces new handles:
 it is a navigation op.
 """
-function structured_match(target::Value; results::MLIRType, ops=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, interface=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, op_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, filter_result_type=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, filter_operand_types=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_match(target::Value; results::MLIRType, ops=nothing, interface=nothing, op_attrs=nothing, filter_result_type=nothing, filter_operand_types=nothing, location=Location())
     results = MLIRType[results, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -1983,7 +1983,7 @@ structured.split %common after %splitr { dimension = 0 }
 // ...
 ```
 """
-function structured_multitile_sizes(target::Value; low_size::MLIRType, high_size::MLIRType, split_point::MLIRType, dimension::Union{Attribute, NamedAttribute}, target_size::Union{Attribute, NamedAttribute}, divisor=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_multitile_sizes(target::Value; low_size::MLIRType, high_size::MLIRType, split_point::MLIRType, dimension, target_size, divisor=nothing, location=Location())
     results = MLIRType[low_size, high_size, split_point, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -2056,7 +2056,7 @@ This operation ignores non-Linalg ops and drops them in the return.
 It returns the list of packed Linalg ops or the original op when all available
 packing strategies failed to apply.
 """
-function structured_pack_greedily(target::Value, matmul_packed_sizes::Vector{Value}; packed_op::MLIRType, static_matmul_packed_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, matmul_padded_sizes_next_multiple_of=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, matmul_inner_dims_order=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_pack_greedily(target::Value, matmul_packed_sizes::Vector{Value}; packed_op::MLIRType, static_matmul_packed_sizes=nothing, matmul_padded_sizes_next_multiple_of=nothing, matmul_inner_dims_order=nothing, location=Location())
     results = MLIRType[packed_op, ]
     operands = Value[target, matmul_packed_sizes..., ]
     owned_regions = Region[]
@@ -2135,7 +2135,7 @@ reason.
 
 The returned handle point to the packed LinalgOp.
 """
-function structured_pack(target::Value, packed_sizes::Vector{Value}; packed_op::MLIRType, static_packed_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_pack(target::Value, packed_sizes::Vector{Value}; packed_op::MLIRType, static_packed_sizes=nothing, location=Location())
     results = MLIRType[packed_op, ]
     operands = Value[target, packed_sizes..., ]
     owned_regions = Region[]
@@ -2189,7 +2189,7 @@ the transformed `tensor.pack` and one to the transformed `tensor.unpack`.
 The last handle for `tensor.unpack` is empty if `target_pack_or_unpack_op`
 was not itself a `tensor.unpack`.
 """
-function structured_pack_transpose(target_pack_or_un_pack_op::Value, target_linalg_op::Value; packed_op::MLIRType, pack_op::MLIRType, un_pack_op::MLIRType, outer_perm=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, inner_perm=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_pack_transpose(target_pack_or_un_pack_op::Value, target_linalg_op::Value; packed_op::MLIRType, pack_op::MLIRType, un_pack_op::MLIRType, outer_perm=nothing, inner_perm=nothing, location=Location())
     results = MLIRType[packed_op, pack_op, un_pack_op, ]
     operands = Value[target_pack_or_un_pack_op, target_linalg_op, ]
     owned_regions = Region[]
@@ -2232,7 +2232,7 @@ properly, the transform succeeds. Otherwise the transform silently fails.
 The return handle points to only the subset of successfully produced
 padded operations, which can be empty.
 """
-function structured_pad(target::Value; padded::MLIRType, pad::MLIRType, copy::MLIRType, padding_values=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, padding_dimensions=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, pad_to_multiple_of=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, pack_paddings=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, transpose_paddings=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, copy_back_op=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_pad(target::Value; padded::MLIRType, pad::MLIRType, copy::MLIRType, padding_values=nothing, padding_dimensions=nothing, pad_to_multiple_of=nothing, pack_paddings=nothing, transpose_paddings=nothing, copy_back_op=nothing, location=Location())
     results = MLIRType[padded, pad, copy, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -2272,7 +2272,7 @@ properly, the transform succeeds.
 When successful, the return handle points to the \$target operation that
 was modified inplace.
 """
-function structured_promote(target::Value; transformed::MLIRType, operands_to_promote=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, use_full_tile_buffers=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, use_full_tiles_by_default=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, use_alloca=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, memory_space=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, mapping=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_promote(target::Value; transformed::MLIRType, operands_to_promote=nothing, use_full_tile_buffers=nothing, use_full_tiles_by_default=nothing, use_alloca=nothing, memory_space=nothing, mapping=nothing, alignment=nothing, location=Location())
     results = MLIRType[transformed, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -2450,7 +2450,7 @@ of the structured op after splitting, in the same order as the target
 operand, with the first handle corresponding to the part with lower
 iteration space indices.
 """
-function structured_split(target::Value, dynamic_split_point=nothing::Union{Nothing, Value}; first::MLIRType, second::MLIRType, dimension::Union{Attribute, NamedAttribute}, static_split_point::Union{Attribute, NamedAttribute}, location=Location())
+function structured_split(target::Value, dynamic_split_point=nothing::Union{Nothing, Value}; first::MLIRType, second::MLIRType, dimension, static_split_point, location=Location())
     results = MLIRType[first, second, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -2602,7 +2602,7 @@ Is transformed to:
  return %4 : tensor<16x32xf32>
 ```
 """
-function structured_split_reduction(target::Value; init_or_alloc_op::MLIRType, fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, split_factor=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, insert_split_dimension=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, inner_parallel=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, use_scaling_algorithm=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, use_alloc=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_split_reduction(target::Value; init_or_alloc_op::MLIRType, fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, split_factor=nothing, insert_split_dimension=nothing, inner_parallel=nothing, use_scaling_algorithm=nothing, use_alloc=nothing, location=Location())
     results = MLIRType[init_or_alloc_op, fill_op, split_linalg_op, combining_linalg_op, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -2692,7 +2692,7 @@ is transformed into:
   } -> tensor<?xf32>
 ```
 """
-function structured_tile_reduction_using_for(target::Value; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, for_op::MLIRType, tile_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_tile_reduction_using_for(target::Value; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, for_op::MLIRType, tile_sizes=nothing, location=Location())
     results = MLIRType[fill_op, split_linalg_op, combining_linalg_op, for_op, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -2775,7 +2775,7 @@ is transformed into:
   } -> tensor<?xf32>
 ```
 """
-function structured_tile_reduction_using_forall(target::Value; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, forall_op::MLIRType, num_threads=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tile_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, mapping=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_tile_reduction_using_forall(target::Value; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, forall_op::MLIRType, num_threads=nothing, tile_sizes=nothing, mapping=nothing, location=Location())
     results = MLIRType[fill_op, split_linalg_op, combining_linalg_op, forall_op, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -2832,7 +2832,7 @@ that of the list associated with the `target` handle.
 If the internal implementation of tiling for any of the operations fails,
 produces a definite failure.
 """
-function structured_tile_using_for(target::Value, dynamic_sizes::Vector{Value}; tiled_linalg_op::MLIRType, loops::Vector{MLIRType}, static_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, interchange=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, scalable_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_tile_using_for(target::Value, dynamic_sizes::Vector{Value}; tiled_linalg_op::MLIRType, loops::Vector{MLIRType}, static_sizes=nothing, interchange=nothing, scalable_sizes=nothing, location=Location())
     results = MLIRType[tiled_linalg_op, loops..., ]
     operands = Value[target, dynamic_sizes..., ]
     owned_regions = Region[]
@@ -2911,7 +2911,7 @@ These two returned handles point to:
    : (!transform.any_op, !transform.any_op) -> (!transform.any_op, !transform.any_op)
 ```
 """
-function structured_tile_using_forall(target::Value, num_threads::Vector{Value}, tile_sizes::Vector{Value}, packed_num_threads=nothing::Union{Nothing, Value}; packed_tile_sizes=nothing::Union{Nothing, Value}, tiled_op::MLIRType, forall_op::MLIRType, static_num_threads=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, static_tile_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, mapping=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_tile_using_forall(target::Value, num_threads::Vector{Value}, tile_sizes::Vector{Value}, packed_num_threads=nothing::Union{Nothing, Value}; packed_tile_sizes=nothing::Union{Nothing, Value}, tiled_op::MLIRType, forall_op::MLIRType, static_num_threads=nothing, static_tile_sizes=nothing, mapping=nothing, location=Location())
     results = MLIRType[tiled_op, forall_op, ]
     operands = Value[target, num_threads..., tile_sizes..., ]
     owned_regions = Region[]
@@ -3005,7 +3005,7 @@ reason.
 The operation always returns the handle to the target op that is expected
 to be isolated from above.
 """
-function structured_vectorize_children_and_apply_patterns(target::Value; transformed::MLIRType, vectorize_padding=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, vectorize_nd_extract=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, flatten_1d_depthwise_conv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, disable_multi_reduction_to_contract_patterns=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, disable_transfer_permutation_map_lowering_patterns=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_vectorize_children_and_apply_patterns(target::Value; transformed::MLIRType, vectorize_padding=nothing, vectorize_nd_extract=nothing, flatten_1d_depthwise_conv=nothing, disable_multi_reduction_to_contract_patterns=nothing, disable_transfer_permutation_map_lowering_patterns=nothing, location=Location())
     results = MLIRType[transformed, ]
     operands = Value[target, ]
     owned_regions = Region[]
@@ -3060,7 +3060,7 @@ not a Linalg op or fails to vectorize. It produces a definite failure if
 the dynamic vector sizes (SSA values) do not satisfy the constraints
 mentioned above.
 """
-function structured_vectorize(target::Value, vector_sizes::Vector{Value}; vectorize_nd_extract=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, scalable_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, static_vector_sizes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function structured_vectorize(target::Value, vector_sizes::Vector{Value}; vectorize_nd_extract=nothing, scalable_sizes=nothing, static_vector_sizes=nothing, location=Location())
     results = MLIRType[]
     operands = Value[target, vector_sizes..., ]
     owned_regions = Region[]

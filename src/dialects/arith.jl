@@ -29,7 +29,7 @@ floating point tensor.
 TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
 """
-function addf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function addf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -289,7 +289,7 @@ attribute by the parser.
 %r3 = \"arith.cmpf\"(%0, %1) {predicate: 0} : (f8, f8) -> i1
 ```
 """
-function cmpf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function cmpf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -371,7 +371,7 @@ complement or large positives
     : (vector<4xi64>, vector<4xi64>) -> vector<4xi1>
 ```
 """
-function cmpi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
+function cmpi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -404,7 +404,7 @@ forms simple integer and floating point constants.
 %1 = \"arith.constant\"() {value = 42 : i32} : () -> i32
 ```
 """
-function constant(; result=nothing::Union{Nothing, MLIRType}, value::Union{Attribute, NamedAttribute}, location=Location())
+function constant(; result=nothing::Union{Nothing, MLIRType}, value, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -424,7 +424,7 @@ end
 `divf`
 
 """
-function divf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function divf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -750,7 +750,7 @@ If one of the arguments is NaN, then the result is the other argument.
 %a = arith.maxnumf %b, %c : f64
 ```
 """
-function maxnumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function maxnumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -820,7 +820,7 @@ If one of the arguments is NaN, then the result is also NaN.
 %a = arith.maximumf %b, %c : f64
 ```
 """
-function maximumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function maximumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -851,7 +851,7 @@ If one of the arguments is NaN, then the result is the other argument.
 %a = arith.minnumf %b, %c : f64
 ```
 """
-function minnumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function minnumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -921,7 +921,7 @@ If one of the arguments is NaN, then the result is also NaN.
 %a = arith.minimumf %b, %c : f64
 ```
 """
-function minimumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function minimumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -962,7 +962,7 @@ floating point tensor.
 TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
 """
-function mulf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function mulf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1106,7 +1106,7 @@ It has no standard attributes.
 %x = arith.negf %y : tensor<4x?xf8>
 ```
 """
-function negf(operand::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function negf(operand::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[operand, ]
     owned_regions = Region[]
@@ -1164,7 +1164,7 @@ end
 `remf`
 
 """
-function remf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function remf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1409,7 +1409,7 @@ floating point tensor.
 TODO: In the distant future, this will accept optional attributes for fast
 math, contraction, rounding mode, and other controls.
 """
-function subf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function subf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]

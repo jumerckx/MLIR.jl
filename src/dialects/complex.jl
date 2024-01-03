@@ -16,7 +16,7 @@ The `abs` op takes a single complex number and computes its absolute value.
 %a = complex.abs %b : complex<f32>
 ```
 """
-function abs(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function abs(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -44,7 +44,7 @@ The `add` operation takes two complex numbers and returns their sum.
 %a = complex.add %b, %c : complex<f32>
 ```
 """
-function add(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function add(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -72,7 +72,7 @@ The `angle` op takes a single complex number and computes its argument value wit
      %a = complex.angle %b : complex<f32>
 ```
 """
-function angle(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function angle(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -101,7 +101,7 @@ atan2(y, x) = -i * log((x + i * y) / sqrt(x**2 + y**2))
 %a = complex.atan2 %b, %c : complex<f32>
 ```
 """
-function atan2(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function atan2(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -155,7 +155,7 @@ complex conjugate.
 %a = complex.conj %b: complex<f32>
 ```
 """
-function conj(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function conj(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -184,7 +184,7 @@ attribute containing the real and imaginary parts.
 %a = complex.constant [0.1, -1.0] : complex<f64>
 ```
 """
-function constant(; complex::MLIRType, value::Union{Attribute, NamedAttribute}, location=Location())
+function constant(; complex::MLIRType, value, location=Location())
     results = MLIRType[complex, ]
     operands = Value[]
     owned_regions = Region[]
@@ -211,7 +211,7 @@ it, i.e. `cos(x)`, where `x` is the input value.
 %a = complex.cos %b : complex<f32>
 ```
 """
-function cos(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function cos(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -265,7 +265,7 @@ division:
 %a = complex.div %b, %c : complex<f32>
 ```
 """
-function div(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function div(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -322,7 +322,7 @@ it, i.e. `exp(x)` or `e^(x)`, where `x` is the input value.
 %a = complex.exp %b : complex<f32>
 ```
 """
-function exp(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function exp(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -350,7 +350,7 @@ complex.expm1(x) := complex.exp(x) - 1
 %a = complex.expm1 %b : complex<f32>
 ```
 """
-function expm1(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function expm1(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -378,7 +378,7 @@ The `im` op takes a single complex number and extracts the imaginary part.
 %a = complex.im %b : complex<f32>
 ```
 """
-function im(complex::Value; imaginary=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function im(complex::Value; imaginary=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -409,7 +409,7 @@ approximately equal to 2.718281.
 %a = complex.log1p %b : complex<f32>
 ```
 """
-function log1p(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function log1p(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -439,7 +439,7 @@ logarithm of it, i.e. `log(x)` or `log_e(x)`, where `x` is the input value.
 %a = complex.log %b : complex<f32>
 ```
 """
-function log(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function log(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -465,7 +465,7 @@ The `mul` operation takes two complex numbers and returns their product:
 %a = complex.mul %b, %c : complex<f32>
 ```
 """
-function mul(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function mul(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -493,7 +493,7 @@ The `neg` op takes a single complex number `complex` and returns `-complex`.
 %a = complex.neg %b : complex<f32>
 ```
 """
-function neg(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function neg(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -550,7 +550,7 @@ exponent.
 %a = complex.pow %b, %c : complex<f32>
 ```
 """
-function pow(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function pow(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -578,7 +578,7 @@ The `re` op takes a single complex number and extracts the real part.
 %a = complex.re %b : complex<f32>
 ```
 """
-function re(complex::Value; real=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function re(complex::Value; real=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -606,7 +606,7 @@ The `rsqrt` operation computes reciprocal of square root.
 %a = complex.rsqrt %b : complex<f32>
 ```
 """
-function rsqrt(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function rsqrt(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -635,7 +635,7 @@ it, i.e. `y = sign(x) = x / |x|` if `x != 0`, otherwise `y = 0`.
 %a = complex.sign %b : complex<f32>
 ```
 """
-function sign(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function sign(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -664,7 +664,7 @@ it, i.e. `sin(x)`, where `x` is the input value.
 %a = complex.sin %b : complex<f32>
 ```
 """
-function sin(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function sin(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -692,7 +692,7 @@ The `sqrt` operation takes a complex number and returns its square root.
 %a = complex.sqrt %b : complex<f32>
 ```
 """
-function sqrt(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function sqrt(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -720,7 +720,7 @@ The `sub` operation takes two complex numbers and returns their difference.
 %a = complex.sub %b, %c : complex<f32>
 ```
 """
-function sub(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function sub(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -749,7 +749,7 @@ it, i.e. `tan(x)`, where `x` is the input value.
 %a = complex.tan %b : complex<f32>
 ```
 """
-function tan(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function tan(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]
@@ -778,7 +778,7 @@ tangent.
 %a = complex.tanh %b : complex<f32>
 ```
 """
-function tanh(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function tanh(complex::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing, location=Location())
     results = MLIRType[]
     operands = Value[complex, ]
     owned_regions = Region[]

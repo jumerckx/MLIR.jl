@@ -16,6 +16,7 @@ INCLUDE_PATH=/home/jumerckx/masterthesis/llvm-project/build/llvm_install/include
 DIALECTS_PATH=/home/jumerckx/masterthesis/llvm-project/mlir/include/mlir/Dialect/
 
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Arith/IR/ArithOps.td -I$INCLUDE_PATH > output/arith.jl
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Index/IR/IndexOps.td -I$INCLUDE_PATH > output/index.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Shape/IR/ShapeOps.td -I$INCLUDE_PATH > output/shape.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/MemRef/IR/MemRefOps.td -I$INCLUDE_PATH > output/memref.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Complex/IR/ComplexOps.td -I$INCLUDE_PATH > output/complex.jl

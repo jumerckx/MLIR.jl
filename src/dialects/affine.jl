@@ -27,7 +27,7 @@ have ‘index’ type.
 %2 = affine.apply affine_map<(i)[s0] -> (i+s0)> (%42)[%n]
 ```
 """
-function apply(mapOperands::Vector{Value}; result_0=nothing::Union{Nothing, MLIRType}, map::Union{Attribute, NamedAttribute}, location=Location())
+function apply(mapOperands::Vector{Value}; result_0=nothing::Union{Nothing, MLIRType}, map, location=Location())
     results = MLIRType[]
     operands = Value[mapOperands..., ]
     owned_regions = Region[]
@@ -189,7 +189,7 @@ If the `affine.for` defines any values, a yield terminator must be
 explicitly present. The number and types of the \"affine.for\" results must
 match the initial values in the `iter_args` binding and the yield operands.
 """
-function for_(lowerBoundOperands::Vector{Value}, upperBoundOperands::Vector{Value}, inits::Vector{Value}; results::Vector{MLIRType}, lowerBoundMap::Union{Attribute, NamedAttribute}, upperBoundMap::Union{Attribute, NamedAttribute}, step::Union{Attribute, NamedAttribute}, region::Region, location=Location())
+function for_(lowerBoundOperands::Vector{Value}, upperBoundOperands::Vector{Value}, inits::Vector{Value}; results::Vector{MLIRType}, lowerBoundMap, upperBoundMap, step, region::Region, location=Location())
     results = MLIRType[results..., ]
     operands = Value[lowerBoundOperands..., upperBoundOperands..., inits..., ]
     owned_regions = Region[region, ]
@@ -318,7 +318,7 @@ Example 2: Uses `symbol` keyword for symbols `%n` and `%m`.
 %1 = affine.load %0[%i0 + symbol(%n), %i1 + symbol(%m)] : memref<100x100xf32>
 ```
 """
-function load(memref::Value, indices::Vector{Value}; result::MLIRType, map::Union{Attribute, NamedAttribute}, location=Location())
+function load(memref::Value, indices::Vector{Value}; result::MLIRType, map, location=Location())
     results = MLIRType[result, ]
     operands = Value[memref, indices..., ]
     owned_regions = Region[]
@@ -345,7 +345,7 @@ affine map.
 %0 = affine.max (d0) -> (1000, d0 + 512) (%i0) : index
 ```
 """
-function max(operands::Vector{Value}; result_0=nothing::Union{Nothing, MLIRType}, map::Union{Attribute, NamedAttribute}, location=Location())
+function max(operands::Vector{Value}; result_0=nothing::Union{Nothing, MLIRType}, map, location=Location())
     results = MLIRType[]
     operands = Value[operands..., ]
     owned_regions = Region[]
@@ -383,7 +383,7 @@ input operands and result must all have \'index\' type.
 %0 = affine.min affine_map<(d0)[s0] -> (1000, d0 + 512, s0)> (%arg0)[%arg1]
 ```
 """
-function min(operands::Vector{Value}; result_0=nothing::Union{Nothing, MLIRType}, map::Union{Attribute, NamedAttribute}, location=Location())
+function min(operands::Vector{Value}; result_0=nothing::Union{Nothing, MLIRType}, map, location=Location())
     results = MLIRType[]
     operands = Value[operands..., ]
     owned_regions = Region[]
@@ -464,7 +464,7 @@ affine.parallel (%ii, %jj) = (0, 0) to (%N, %M) step (32, 32) {
 }
 ```
 """
-function parallel(mapOperands::Vector{Value}; results::Vector{MLIRType}, reductions::Union{Attribute, NamedAttribute}, lowerBoundsMap::Union{Attribute, NamedAttribute}, lowerBoundsGroups::Union{Attribute, NamedAttribute}, upperBoundsMap::Union{Attribute, NamedAttribute}, upperBoundsGroups::Union{Attribute, NamedAttribute}, steps::Union{Attribute, NamedAttribute}, region::Region, location=Location())
+function parallel(mapOperands::Vector{Value}; results::Vector{MLIRType}, reductions, lowerBoundsMap, lowerBoundsGroups, upperBoundsMap, upperBoundsGroups, steps, region::Region, location=Location())
     results = MLIRType[results..., ]
     operands = Value[mapOperands..., ]
     owned_regions = Region[region, ]
@@ -497,7 +497,7 @@ local keep in cache). The cache type specifier is either \'data\' or \'instr\'
 and specifies whether the prefetch is performed on data cache or on
 instruction cache.
 """
-function prefetch(memref::Value, indices::Vector{Value}; isWrite::Union{Attribute, NamedAttribute}, localityHint::Union{Attribute, NamedAttribute}, isDataCache::Union{Attribute, NamedAttribute}, map::Union{Attribute, NamedAttribute}, location=Location())
+function prefetch(memref::Value, indices::Vector{Value}; isWrite, localityHint, isDataCache, map, location=Location())
     results = MLIRType[]
     operands = Value[memref, indices..., ]
     owned_regions = Region[]
@@ -540,7 +540,7 @@ Example 2: Uses `symbol` keyword for symbols `%n` and `%m`.
 affine.store %v0, %0[%i0 + symbol(%n), %i1 + symbol(%m)] : memref<100x100xf32>
 ```
 """
-function store(value::Value, memref::Value, indices::Vector{Value}; map::Union{Attribute, NamedAttribute}, location=Location())
+function store(value::Value, memref::Value, indices::Vector{Value}; map, location=Location())
     results = MLIRType[]
     operands = Value[value, memref, indices..., ]
     owned_regions = Region[]
@@ -594,7 +594,7 @@ TODOs:
 * Consider adding a permutation map to permute the slice that is read from memory
 (see [vector.transfer_read](../Vector/#vectortransfer_read-mlirvectortransferreadop)).
 """
-function vector_load(memref::Value, indices::Vector{Value}; result::MLIRType, map::Union{Attribute, NamedAttribute}, location=Location())
+function vector_load(memref::Value, indices::Vector{Value}; result::MLIRType, map, location=Location())
     results = MLIRType[result, ]
     operands = Value[memref, indices..., ]
     owned_regions = Region[]
@@ -650,7 +650,7 @@ TODOs:
 * Consider adding a permutation map to permute the slice that is written to memory
 (see [vector.transfer_write](../Vector/#vectortransfer_write-mlirvectortransferwriteop)).
 """
-function vector_store(value::Value, memref::Value, indices::Vector{Value}; map::Union{Attribute, NamedAttribute}, location=Location())
+function vector_store(value::Value, memref::Value, indices::Vector{Value}; map, location=Location())
     results = MLIRType[]
     operands = Value[value, memref, indices..., ]
     owned_regions = Region[]

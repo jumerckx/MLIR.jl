@@ -19,7 +19,7 @@ If the passed-in vector has fewer than four elements, or the input is scalar,
 the remaining values in the <4 x i8> will be filled with with
 undefined values as needed.
 """
-function ext_packed_fp8(source::Value; res::MLIRType, index::Union{Attribute, NamedAttribute}, location=Location())
+function ext_packed_fp8(source::Value; res::MLIRType, index, location=Location())
     results = MLIRType[res, ]
     operands = Value[source, ]
     owned_regions = Region[]
@@ -93,7 +93,7 @@ order (that is, v[0] will go to arg[7:0], v[1] to arg[15:8] and so on).
 The negateA, negateB, and negateC flags are only supported for double-precision
 operations on gfx940+.
 """
-function mfma(sourceA::Value, sourceB::Value, destC::Value; destD::MLIRType, m::Union{Attribute, NamedAttribute}, n::Union{Attribute, NamedAttribute}, k::Union{Attribute, NamedAttribute}, blocks::Union{Attribute, NamedAttribute}, cbsz=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, abid=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, blgp=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, reducePrecision=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, negateA=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, negateB=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, negateC=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function mfma(sourceA::Value, sourceB::Value, destC::Value; destD::MLIRType, m, n, k, blocks, cbsz=nothing, abid=nothing, blgp=nothing, reducePrecision=nothing, negateA=nothing, negateB=nothing, negateC=nothing, location=Location())
     results = MLIRType[destD, ]
     operands = Value[sourceA, sourceB, destC, ]
     owned_regions = Region[]
@@ -129,7 +129,7 @@ sub-registers, and so the conversion intrinsics (which are currently the
 only way to work with 8-bit float types) take packed vectors of 4 8-bit
 values.
 """
-function packed_stoch_round_fp8(source::Value, stochiasticParam::Value, existing=nothing::Union{Nothing, Value}; res::MLIRType, storeIndex::Union{Attribute, NamedAttribute}, location=Location())
+function packed_stoch_round_fp8(source::Value, stochiasticParam::Value, existing=nothing::Union{Nothing, Value}; res::MLIRType, storeIndex, location=Location())
     results = MLIRType[res, ]
     operands = Value[source, stochiasticParam, ]
     owned_regions = Region[]
@@ -158,7 +158,7 @@ sub-registers, and so the conversion intrinsics (which are currently the
 only way to work with 8-bit float types) take packed vectors of 4 8-bit
 values.
 """
-function packed_trunc_2xfp8(sourceA::Value, sourceB=nothing::Union{Nothing, Value}; existing=nothing::Union{Nothing, Value}, res::MLIRType, wordIndex::Union{Attribute, NamedAttribute}, location=Location())
+function packed_trunc_2xfp8(sourceA::Value, sourceB=nothing::Union{Nothing, Value}; existing=nothing::Union{Nothing, Value}, res::MLIRType, wordIndex, location=Location())
     results = MLIRType[res, ]
     operands = Value[sourceA, ]
     owned_regions = Region[]
@@ -195,7 +195,7 @@ Out of bounds atomic operations are ignored in hardware.
 See `amdgpu.raw_buffer_load` for a description of how the underlying
 instruction is constructed.
 """
-function raw_buffer_atomic_cmpswap(src::Value, cmp::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; value::MLIRType, boundsCheck=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, indexOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function raw_buffer_atomic_cmpswap(src::Value, cmp::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; value::MLIRType, boundsCheck=nothing, indexOffset=nothing, location=Location())
     results = MLIRType[value, ]
     operands = Value[src, cmp, memref, indices..., ]
     owned_regions = Region[]
@@ -234,7 +234,7 @@ Out of bounds atomic operations are ignored in hardware.
 See `amdgpu.raw_buffer_load` for a description of how the underlying
 instruction is constructed.
 """
-function raw_buffer_atomic_fadd(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, indexOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function raw_buffer_atomic_fadd(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing, indexOffset=nothing, location=Location())
     results = MLIRType[]
     operands = Value[value, memref, indices..., ]
     owned_regions = Region[]
@@ -272,7 +272,7 @@ Out of bounds atomic operations are ignored in hardware.
 See `amdgpu.raw_buffer_load` for a description of how the underlying
 instruction is constructed.
 """
-function raw_buffer_atomic_fmax(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, indexOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function raw_buffer_atomic_fmax(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing, indexOffset=nothing, location=Location())
     results = MLIRType[]
     operands = Value[value, memref, indices..., ]
     owned_regions = Region[]
@@ -310,7 +310,7 @@ Out of bounds atomic operations are ignored in hardware.
 See `amdgpu.raw_buffer_load` for a description of how the underlying
 instruction is constructed.
 """
-function raw_buffer_atomic_smax(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, indexOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function raw_buffer_atomic_smax(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing, indexOffset=nothing, location=Location())
     results = MLIRType[]
     operands = Value[value, memref, indices..., ]
     owned_regions = Region[]
@@ -348,7 +348,7 @@ Out of bounds atomic operations are ignored in hardware.
 See `amdgpu.raw_buffer_load` for a description of how the underlying
 instruction is constructed.
 """
-function raw_buffer_atomic_umin(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, indexOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function raw_buffer_atomic_umin(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing, indexOffset=nothing, location=Location())
     results = MLIRType[]
     operands = Value[value, memref, indices..., ]
     owned_regions = Region[]
@@ -399,7 +399,7 @@ are translated to intrinsic arguments as follows:
   to 2 to disable bounds checks, otherwise it is 3
 - The cache coherency bits are off
 """
-function raw_buffer_load(memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; value::MLIRType, boundsCheck=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, indexOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function raw_buffer_load(memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; value::MLIRType, boundsCheck=nothing, indexOffset=nothing, location=Location())
     results = MLIRType[value, ]
     operands = Value[memref, indices..., ]
     owned_regions = Region[]
@@ -438,7 +438,7 @@ components is partically completed is chipset-dependent.
 See `amdgpu.raw_buffer_load` for a description of how the underlying
 instruction is constructed.
 """
-function raw_buffer_store(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, indexOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function raw_buffer_store(value::Value, memref::Value, indices::Vector{Value}, sgprOffset=nothing::Union{Nothing, Value}; boundsCheck=nothing, indexOffset=nothing, location=Location())
     results = MLIRType[]
     operands = Value[value, memref, indices..., ]
     owned_regions = Region[]
@@ -474,7 +474,7 @@ containing only 8 valid values:
 The `clamp` flag is used to saturate the output of type T to numeric_limits<T>::max()
 in case of overflow.
 """
-function wmma(sourceA::Value, sourceB::Value, destC::Value; destD::MLIRType, subwordOffset=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unsignedA=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unsignedB=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, clamp=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function wmma(sourceA::Value, sourceB::Value, destC::Value; destD::MLIRType, subwordOffset=nothing, unsignedA=nothing, unsignedB=nothing, clamp=nothing, location=Location())
     results = MLIRType[destD, ]
     operands = Value[sourceA, sourceB, destC, ]
     owned_regions = Region[]

@@ -29,7 +29,7 @@ end
 `add`
 
 """
-function add(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function add(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -94,7 +94,7 @@ func @foo() {
 llvm.mlir.global @const(42 : i32) : i32
 ```
 """
-function mlir_addressof(; res::MLIRType, global_name::Union{Attribute, NamedAttribute}, location=Location())
+function mlir_addressof(; res::MLIRType, global_name, location=Location())
     results = MLIRType[res, ]
     operands = Value[]
     owned_regions = Region[]
@@ -113,7 +113,7 @@ end
 `alloca`
 
 """
-function alloca(arraySize::Value; res::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, elem_type::Union{Attribute, NamedAttribute}, inalloca=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function alloca(arraySize::Value; res::MLIRType, alignment=nothing, elem_type, inalloca=nothing, location=Location())
     results = MLIRType[res, ]
     operands = Value[arraySize, ]
     owned_regions = Region[]
@@ -154,7 +154,7 @@ end
 `cmpxchg`
 
 """
-function cmpxchg(ptr::Value, cmp::Value, val::Value; res=nothing::Union{Nothing, MLIRType}, success_ordering::Union{Attribute, NamedAttribute}, failure_ordering::Union{Attribute, NamedAttribute}, syncscope=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, weak=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, volatile_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function cmpxchg(ptr::Value, cmp::Value, val::Value; res=nothing::Union{Nothing, MLIRType}, success_ordering, failure_ordering, syncscope=nothing, alignment=nothing, weak=nothing, volatile_=nothing, access_groups=nothing, alias_scopes=nothing, noalias_scopes=nothing, tbaa=nothing, location=Location())
     results = MLIRType[]
     operands = Value[ptr, cmp, val, ]
     owned_regions = Region[]
@@ -182,7 +182,7 @@ end
 `atomicrmw`
 
 """
-function atomicrmw(ptr::Value, val::Value; res=nothing::Union{Nothing, MLIRType}, bin_op::Union{Attribute, NamedAttribute}, ordering::Union{Attribute, NamedAttribute}, syncscope=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, volatile_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function atomicrmw(ptr::Value, val::Value; res=nothing::Union{Nothing, MLIRType}, bin_op, ordering, syncscope=nothing, alignment=nothing, volatile_=nothing, access_groups=nothing, alias_scopes=nothing, noalias_scopes=nothing, tbaa=nothing, location=Location())
     results = MLIRType[]
     operands = Value[ptr, val, ]
     owned_regions = Region[]
@@ -228,7 +228,7 @@ end
 `br`
 
 """
-function br(destOperands::Vector{Value}; loop_annotation=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, dest::Block, location=Location())
+function br(destOperands::Vector{Value}; loop_annotation=nothing, dest::Block, location=Location())
     results = MLIRType[]
     operands = Value[destOperands..., ]
     owned_regions = Region[]
@@ -250,7 +250,7 @@ end
 Call the specified llvm intrinsic. If the intrinsic is overloaded, use
 the MLIR function type of this op to determine which intrinsic to call.
 """
-function call_intrinsic(args::Vector{Value}; results=nothing::Union{Nothing, MLIRType}, intrin::Union{Attribute, NamedAttribute}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function call_intrinsic(args::Vector{Value}; results=nothing::Union{Nothing, MLIRType}, intrin, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[args..., ]
     owned_regions = Region[]
@@ -305,7 +305,7 @@ llvm.call @printf(%0, %1) vararg(!llvm.func<i32 (ptr, ...)>) : (!llvm.ptr, i32) 
 llvm.call %1(%0) vararg(!llvm.func<void (...)>) : !llvm.ptr, (i32) -> ()
 ```
 """
-function call(callee_operands::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, callee_type=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, callee=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, CConv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function call(callee_operands::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, callee_type=nothing, callee=nothing, fastmathFlags=nothing, branch_weights=nothing, CConv=nothing, access_groups=nothing, alias_scopes=nothing, noalias_scopes=nothing, tbaa=nothing, location=Location())
     results = MLIRType[]
     operands = Value[callee_operands..., ]
     owned_regions = Region[]
@@ -343,7 +343,7 @@ llvm.comdat @__llvm_comdat {
 llvm.mlir.global internal constant @has_any_comdat(1 : i64) comdat(@__llvm_comdat::@any) : i64
 ```
 """
-function comdat(; sym_name::Union{Attribute, NamedAttribute}, body::Region, location=Location())
+function comdat(; sym_name, body::Region, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[body, ]
@@ -371,7 +371,7 @@ llvm.comdat @__llvm_comdat {
 llvm.mlir.global internal constant @has_any_comdat(1 : i64) comdat(@__llvm_comdat::@any) : i64
 ```
 """
-function comdat_selector(; sym_name::Union{Attribute, NamedAttribute}, comdat::Union{Attribute, NamedAttribute}, location=Location())
+function comdat_selector(; sym_name, comdat, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -390,7 +390,7 @@ end
 `cond_br`
 
 """
-function cond_br(condition::Value, trueDestOperands::Vector{Value}, falseDestOperands::Vector{Value}; branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, loop_annotation=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, trueDest::Block, falseDest::Block, location=Location())
+function cond_br(condition::Value, trueDestOperands::Vector{Value}, falseDestOperands::Vector{Value}; branch_weights=nothing, loop_annotation=nothing, trueDest::Block, falseDest::Block, location=Location())
     results = MLIRType[]
     operands = Value[condition, trueDestOperands..., falseDestOperands..., ]
     owned_regions = Region[]
@@ -438,7 +438,7 @@ Examples:
 %3 = llvm.mlir.constant(dense<1.0> : vector<4xf32>) : vector<4xf32>
 ```
 """
-function mlir_constant(; res::MLIRType, value::Union{Attribute, NamedAttribute}, location=Location())
+function mlir_constant(; res::MLIRType, value, location=Location())
     results = MLIRType[res, ]
     operands = Value[]
     owned_regions = Region[]
@@ -477,7 +477,7 @@ end
 `extractvalue`
 
 """
-function extractvalue(container::Value; res::MLIRType, position::Union{Attribute, NamedAttribute}, location=Location())
+function extractvalue(container::Value; res::MLIRType, position, location=Location())
     results = MLIRType[res, ]
     operands = Value[container, ]
     owned_regions = Region[]
@@ -496,7 +496,7 @@ end
 `fadd`
 
 """
-function fadd(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function fadd(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -517,7 +517,7 @@ end
 `fcmp`
 
 """
-function fcmp(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function fcmp(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, predicate, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -538,7 +538,7 @@ end
 `fdiv`
 
 """
-function fdiv(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function fdiv(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -559,7 +559,7 @@ end
 `fmul`
 
 """
-function fmul(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function fmul(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -580,7 +580,7 @@ end
 `fneg`
 
 """
-function fneg(operand::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function fneg(operand::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[operand, ]
     owned_regions = Region[]
@@ -677,7 +677,7 @@ end
 `frem`
 
 """
-function frem(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function frem(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -698,7 +698,7 @@ end
 `fsub`
 
 """
-function fsub(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function fsub(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -719,7 +719,7 @@ end
 `fence`
 
 """
-function fence(; ordering::Union{Attribute, NamedAttribute}, syncscope=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function fence(; ordering, syncscope=nothing, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -782,7 +782,7 @@ Examples:
    : (!llvm.ptr) -> !llvm.ptr, !llvm.struct<(i32, f32)>
 ```
 """
-function getelementptr(base::Value, dynamicIndices::Vector{Value}; res::MLIRType, rawConstantIndices::Union{Attribute, NamedAttribute}, elem_type::Union{Attribute, NamedAttribute}, inbounds=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function getelementptr(base::Value, dynamicIndices::Vector{Value}; res::MLIRType, rawConstantIndices, elem_type, inbounds=nothing, location=Location())
     results = MLIRType[res, ]
     operands = Value[base, dynamicIndices..., ]
     owned_regions = Region[]
@@ -820,7 +820,7 @@ llvm.func @ctor() {
 }
 ```
 """
-function mlir_global_ctors(; ctors::Union{Attribute, NamedAttribute}, priorities::Union{Attribute, NamedAttribute}, location=Location())
+function mlir_global_ctors(; ctors, priorities, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -854,7 +854,7 @@ llvm.func @dtor() {
 llvm.mlir.global_dtors {@dtor}
 ```
 """
-function mlir_global_dtors(; dtors::Union{Attribute, NamedAttribute}, priorities::Union{Attribute, NamedAttribute}, location=Location())
+function mlir_global_dtors(; dtors, priorities, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -966,7 +966,7 @@ Examples:
 llvm.mlir.global private constant @y(dense<1.0> : tensor<8xf32>) { alignment = 32 : i64 } : !llvm.array<8 x f32>
 ```
 """
-function mlir_global(; global_type::Union{Attribute, NamedAttribute}, constant=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, sym_name::Union{Attribute, NamedAttribute}, linkage::Union{Attribute, NamedAttribute}, dso_local=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, thread_local_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, value=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, addr_space=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unnamed_addr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, section=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, comdat=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, dbg_expr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, visibility_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, initializer::Region, location=Location())
+function mlir_global(; global_type, constant=nothing, sym_name, linkage, dso_local=nothing, thread_local_=nothing, value=nothing, alignment=nothing, addr_space=nothing, unnamed_addr=nothing, section=nothing, comdat=nothing, dbg_expr=nothing, visibility_=nothing, initializer::Region, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[initializer, ]
@@ -996,7 +996,7 @@ end
 `icmp`
 
 """
-function icmp(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
+function icmp(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, predicate, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1022,7 +1022,7 @@ written, or referenced.
 Attempting to define or reference any symbol or any global behavior is
 considered undefined behavior at this time.
 """
-function inline_asm(operands::Vector{Value}; res=nothing::Union{Nothing, MLIRType}, asm_string::Union{Attribute, NamedAttribute}, constraints::Union{Attribute, NamedAttribute}, has_side_effects=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, is_align_stack=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, asm_dialect=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, operand_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function inline_asm(operands::Vector{Value}; res=nothing::Union{Nothing, MLIRType}, asm_string, constraints, has_side_effects=nothing, is_align_stack=nothing, asm_dialect=nothing, operand_attrs=nothing, location=Location())
     results = MLIRType[]
     operands = Value[operands..., ]
     owned_regions = Region[]
@@ -1066,7 +1066,7 @@ end
 `insertvalue`
 
 """
-function insertvalue(container::Value, value::Value; res=nothing::Union{Nothing, MLIRType}, position::Union{Attribute, NamedAttribute}, location=Location())
+function insertvalue(container::Value, value::Value; res=nothing::Union{Nothing, MLIRType}, position, location=Location())
     results = MLIRType[]
     operands = Value[container, value, ]
     owned_regions = Region[]
@@ -1105,7 +1105,7 @@ end
 `invoke`
 
 """
-function invoke(callee_operands::Vector{Value}, normalDestOperands::Vector{Value}, unwindDestOperands::Vector{Value}; result_0::Vector{MLIRType}, callee_type=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, callee=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, CConv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, normalDest::Block, unwindDest::Block, location=Location())
+function invoke(callee_operands::Vector{Value}, normalDestOperands::Vector{Value}, unwindDestOperands::Vector{Value}; result_0::Vector{MLIRType}, callee_type=nothing, callee=nothing, branch_weights=nothing, CConv=nothing, normalDest::Block, unwindDest::Block, location=Location())
     results = MLIRType[result_0..., ]
     operands = Value[callee_operands..., normalDestOperands..., unwindDestOperands..., ]
     owned_regions = Region[]
@@ -1154,7 +1154,7 @@ llvm.func internal @internal_func() {
 }
 ```
 """
-function func(; sym_name::Union{Attribute, NamedAttribute}, sym_visibility=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, function_type::Union{Attribute, NamedAttribute}, linkage=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, dso_local=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, CConv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, comdat=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, personality=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, garbageCollector=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, passthrough=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arg_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, res_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, function_entry_count=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, memory=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, visibility_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_streaming=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_locally_streaming=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_streaming_compatible=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_new_za=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, section=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unnamed_addr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, vscale_range=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, frame_pointer=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, target_features=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, body::Region, location=Location())
+function func(; sym_name, sym_visibility=nothing, function_type, linkage=nothing, dso_local=nothing, CConv=nothing, comdat=nothing, personality=nothing, garbageCollector=nothing, passthrough=nothing, arg_attrs=nothing, res_attrs=nothing, function_entry_count=nothing, memory=nothing, visibility_=nothing, arm_streaming=nothing, arm_locally_streaming=nothing, arm_streaming_compatible=nothing, arm_new_za=nothing, section=nothing, unnamed_addr=nothing, alignment=nothing, vscale_range=nothing, frame_pointer=nothing, target_features=nothing, body::Region, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[body, ]
@@ -1216,7 +1216,7 @@ end
 `landingpad`
 
 """
-function landingpad(operand_0::Vector{Value}; res::MLIRType, cleanup=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function landingpad(operand_0::Vector{Value}; res::MLIRType, cleanup=nothing, location=Location())
     results = MLIRType[res, ]
     operands = Value[operand_0..., ]
     owned_regions = Region[]
@@ -1248,7 +1248,7 @@ llvm.linker_options [\"/DEFAULTLIB:\", \"libcmt\"]
 llvm.linker_options [\"-l\", \"clang_rt.builtins-aarch64\"]
 ```
 """
-function linker_options(; options::Union{Attribute, NamedAttribute}, location=Location())
+function linker_options(; options, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
@@ -1289,7 +1289,7 @@ Examples:
 See the following link for more details:
 https://llvm.org/docs/LangRef.html#load-instruction
 """
-function load(addr::Value; res::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, volatile_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, nontemporal=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, invariant=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, ordering=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, syncscope=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function load(addr::Value; res::MLIRType, alignment=nothing, volatile_=nothing, nontemporal=nothing, invariant=nothing, ordering=nothing, syncscope=nothing, access_groups=nothing, alias_scopes=nothing, noalias_scopes=nothing, tbaa=nothing, location=Location())
     results = MLIRType[res, ]
     operands = Value[addr, ]
     owned_regions = Region[]
@@ -1318,7 +1318,7 @@ end
 `mul`
 
 """
-function mul(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function mul(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1556,7 +1556,7 @@ end
 `select`
 
 """
-function select(condition::Value, trueValue::Value, falseValue::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function select(condition::Value, trueValue::Value, falseValue::Value; res=nothing::Union{Nothing, MLIRType}, fastmathFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[condition, trueValue, falseValue, ]
     owned_regions = Region[]
@@ -1577,7 +1577,7 @@ end
 `shl`
 
 """
-function shl(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function shl(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1598,7 +1598,7 @@ end
 `shufflevector`
 
 """
-function shufflevector(v1::Value, v2::Value; res::MLIRType, mask::Union{Attribute, NamedAttribute}, location=Location())
+function shufflevector(v1::Value, v2::Value; res::MLIRType, mask, location=Location())
     results = MLIRType[res, ]
     operands = Value[v1, v2, ]
     owned_regions = Region[]
@@ -1639,7 +1639,7 @@ llvm.store %val, %ptr atomic monotonic {alignment = 8 : i64}
 See the following link for more details:
 https://llvm.org/docs/LangRef.html#store-instruction
 """
-function store(value::Value, addr::Value; alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, volatile_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, nontemporal=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, ordering=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, syncscope=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function store(value::Value, addr::Value; alignment=nothing, volatile_=nothing, nontemporal=nothing, ordering=nothing, syncscope=nothing, access_groups=nothing, alias_scopes=nothing, noalias_scopes=nothing, tbaa=nothing, location=Location())
     results = MLIRType[]
     operands = Value[value, addr, ]
     owned_regions = Region[]
@@ -1667,7 +1667,7 @@ end
 `sub`
 
 """
-function sub(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function sub(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -1688,7 +1688,7 @@ end
 `switch`
 
 """
-function switch(value::Value, defaultOperands::Vector{Value}, caseOperands::Vector{Value}; case_values=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, case_operand_segments::Union{Attribute, NamedAttribute}, branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, defaultDestination::Block, caseDestinations::Vector{Block}, location=Location())
+function switch(value::Value, defaultOperands::Vector{Value}, caseOperands::Vector{Value}; case_values=nothing, case_operand_segments, branch_weights=nothing, defaultDestination::Block, caseDestinations::Vector{Block}, location=Location())
     results = MLIRType[]
     operands = Value[value, defaultOperands..., caseOperands..., ]
     owned_regions = Region[]
