@@ -20,16 +20,21 @@ files = [joinpath(@__DIR__, "tblgen", "mlir-jl-tblgen.cc"), joinpath(@__DIR__, "
 output = ["-o", "mlir-jl-tblgen"]
 libs = ["-lLLVM", "-lMLIR", "-lMLIRTableGen", "-lLLVMTableGen"]
 
-extra = [
-    "-isysroot",
-    "/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk",
-    "-lc++",
-    "-rpath",
-    joinpath(LLVM_full_jll.artifact_dir, "lib")
-]
+extra = ["-rpath", joinpath(LLVM_full_jll.artifact_dir, "lib")]
+if Base.Sys.isapple()
+    append!(extra, [
+        "-isysroot",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk",
+        "-lc++",
+    ])
+elseif Base.Sys.islinux()
+    append!(extra, [
+        "-lstdc++",
+    ])
+end
 println("- extra flags = $extra")
 
-run(`$(clang()) $CXXFLAGS $LDFLAGS $extra $libs $output $files`)
+run(`$(clang()) $files $CXXFLAGS $LDFLAGS $extra $libs $output`)
 
 # generate bindings
 println("Generating bindings...")
