@@ -22,9 +22,10 @@ libs = ["-lLLVM", "-lMLIR", "-lMLIRTableGen", "-lLLVMTableGen"]
 
 extra = ["-rpath", joinpath(LLVM_full_jll.artifact_dir, "lib")]
 if Base.Sys.isapple()
+    isysroot = strip(read(`xcrun --show-sdk-path`, String))
     append!(extra, [
         "-isysroot",
-        "/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk",
+        isysroot,
         "-lc++",
     ])
 elseif Base.Sys.islinux()
