@@ -27,8 +27,9 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALEC
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/ControlFlow/IR/ControlFlowOps.td -I$INCLUDE_PATH > output/cf.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Func/IR/FuncOps.td -I$INCLUDE_PATH > output/func.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Quant/QuantOps.td -I$INCLUDE_PATH > output/quant.jl
-# LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/IRDL/IR/IRDLOps.td -I$INCLUDE_PATH > output/IRDL.jl
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/IRDL/IR/IRDLOps.td -I$INCLUDE_PATH -I$DIALECTS_PATH/IRDL/IR > output/IRDL.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/PDL/IR/PDLOps.td -I$INCLUDE_PATH > output/pdl.jl
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Transform/IR/TransformOps.td -I$INCLUDE_PATH > output/transform.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs /home/jumerckx/masterthesis/llvm-project/mlir/include/mlir/IR/BuiltinOps.td --dialect-name="builtin"  -I$INCLUDE_PATH > output/builtin.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs /home/jumerckx/masterthesis/llvm-project/mlir/include/mlir/IR/BuiltinTypes.td --dialect-name="builtin" -I$INCLUDE_PATH > output/builtin_types.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs /home/jumerckx/masterthesis/llvm-project/mlir/include/mlir/IR/OpBase.td --dialect-name="base" -I$INCLUDE_PATH > output/base.jl
