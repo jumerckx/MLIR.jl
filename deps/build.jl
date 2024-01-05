@@ -44,52 +44,46 @@ isdir("output") && rm("output"; recursive=true)
 mkdir("output")
 
 target_dialects = [
-    ("output/Builtin.jl", "../IR/BuiltinOps.td"),
-    ("output/AMDGPU.jl", "AMDGPU/AMDGPU.td"),
-    ("output/AMX.jl", "AMX/AMX.td"),
-    ("output/Affine.jl", "Affine/IR/AffineOps.td"),
-    ("output/Arithmetic.jl", "Arithmetic/IR/ArithmeticOps.td"),
-    # ("output/ArmNeon.jl", "ArmNeon/ArmNeon.td"),
-    ("output/ArmSVE.jl", "ArmSVE/ArmSVE.td"),
-    ("output/Async.jl", "Async/IR/AsyncOps.td"),
-    ("output/Bufferization.jl", "Bufferization/IR/BufferizationOps.td"),
-    ("output/Complex.jl", "Complex/IR/ComplexOps.td"),
-    ("output/ControlFlow.jl", "ControlFlow/IR/ControlFlowOps.td"),
-    # ("output/DLTI.jl", "DLTI/DLTI.td"),
-    ("output/EmitC.jl", "EmitC/IR/EmitC.td"),
-    ("output/Func.jl", "Func/IR/FuncOps.td"),
-    # ("output/GPU.jl", "GPU/IR/GPUOps.td"),
-    ("output/Linalg.jl", "Linalg/IR/LinalgOps.td"),
-    # ("output/LinalgStructured.jl", "Linalg/IR/LinalgStructuredOps.td"),
-    ("output/LLVMIR.jl", "LLVMIR/LLVMOps.td"),
-    # ("output/MLProgram.jl", "MLProgram/IR/MLProgramOps.td"),
-    ("output/Math.jl", "Math/IR/MathOps.td"),
-    ("output/MemRef.jl", "MemRef/IR/MemRefOps.td"),
-    ("output/NVGPU.jl", "NVGPU/IR/NVGPU.td"),
-    # ("output/OpenACC.jl", "OpenACC/OpenACCOps.td"),
-    # ("output/OpenMP.jl", "OpenMP/OpenMPOps.td"),
-    # ("output/PDL.jl", "PDL/IR/PDLOps.td"),
-    # ("output/PDLInterp.jl", "PDLInterp/IR/PDLInterpOps.td"),
-    ("output/Quant.jl", "Quant/QuantOps.td"),
-    # ("output/SCF.jl", "SCF/IR/SCFOps.td"),
-    # ("output/SPIRV.jl", "SPIRV/IR/SPIRVOps.td"),
-    ("output/Shape.jl", "Shape/IR/ShapeOps.td"),
-    ("output/SparseTensor.jl", "SparseTensor/IR/SparseTensorOps.td"),
-    ("output/Tensor.jl", "Tensor/IR/TensorOps.td"),
-    # ("output/Tosa.jl", "Tosa/IR/TosaOps.td"),
-    ("output/Transform.jl", "Transform/IR/TransformOps.td"),
-    ("output/Vector.jl", "Vector/IR/VectorOps.td"),
-    # ("output/X86Vector.jl", "X86Vector/X86Vector.td"),
+    ("Builtin.jl", "../IR/BuiltinOps.td"),
+    ("AMDGPU.jl", "AMDGPU/AMDGPU.td"),
+    ("AMX.jl", "AMX/AMX.td"),
+    ("Affine.jl", "Affine/IR/AffineOps.td"),
+    ("Arithmetic.jl", "Arithmetic/IR/ArithmeticOps.td"),
+    # ("ArmNeon.jl", "ArmNeon/ArmNeon.td"),
+    ("ArmSVE.jl", "ArmSVE/ArmSVE.td"),
+    ("Async.jl", "Async/IR/AsyncOps.td"),
+    ("Bufferization.jl", "Bufferization/IR/BufferizationOps.td"),
+    ("Complex.jl", "Complex/IR/ComplexOps.td"),
+    ("ControlFlow.jl", "ControlFlow/IR/ControlFlowOps.td"),
+    # ("DLTI.jl", "DLTI/DLTI.td"),
+    ("EmitC.jl", "EmitC/IR/EmitC.td"),
+    ("Func.jl", "Func/IR/FuncOps.td"),
+    # ("GPU.jl", "GPU/IR/GPUOps.td"),
+    ("Linalg.jl", "Linalg/IR/LinalgOps.td"),
+    # ("LinalgStructured.jl", "Linalg/IR/LinalgStructuredOps.td"),
+    ("LLVMIR.jl", "LLVMIR/LLVMOps.td"),
+    # ("MLProgram.jl", "MLProgram/IR/MLProgramOps.td"),
+    ("Math.jl", "Math/IR/MathOps.td"),
+    ("MemRef.jl", "MemRef/IR/MemRefOps.td"),
+    ("NVGPU.jl", "NVGPU/IR/NVGPU.td"),
+    # ("OpenACC.jl", "OpenACC/OpenACCOps.td"),
+    # ("OpenMP.jl", "OpenMP/OpenMPOps.td"),
+    # ("PDL.jl", "PDL/IR/PDLOps.td"),
+    # ("PDLInterp.jl", "PDLInterp/IR/PDLInterpOps.td"),
+    ("Quant.jl", "Quant/QuantOps.td"),
+    # ("SCF.jl", "SCF/IR/SCFOps.td"),
+    # ("SPIRV.jl", "SPIRV/IR/SPIRVOps.td"),
+    ("Shape.jl", "Shape/IR/ShapeOps.td"),
+    ("SparseTensor.jl", "SparseTensor/IR/SparseTensorOps.td"),
+    ("Tensor.jl", "Tensor/IR/TensorOps.td"),
+    # ("Tosa.jl", "Tosa/IR/TosaOps.td"),
+    ("Transform.jl", "Transform/IR/TransformOps.td"),
+    ("Vector.jl", "Vector/IR/VectorOps.td"),
+    # ("X86Vector.jl", "X86Vector/X86Vector.td"),
 ]
 
-for (output, path) in target_dialects
+for (file, path) in target_dialects
+    output = joinpath(@__DIR__, "..", "src", "dialects", file)
     run(`./mlir-jl-tblgen --generator=jl-op-defs $(joinpath(DIALECTS_PATH, path)) -I$INCLUDE_PATH -o $output`)
     println("- Generated \"$output\" from \"$path\"")
-end
-
-open(joinpath(@__DIR__, "..", "src", "dialects", "Dialects.jl"), write=true, create=true) do io
-    for i in readdir("output")
-        mv(joinpath("output", i), joinpath(@__DIR__, "..", "src", "dialects", i), force=true)
-        println(io, "include(\"$i\")")
-    end
 end
