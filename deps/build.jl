@@ -89,7 +89,7 @@ end
 
 open(joinpath(@__DIR__, "..", "src", "dialects", "Dialects.jl"), write=true, create=true) do io
     for i in readdir("output")
-        mv(joinpath("output", i), joinpath(@__DIR__, "..", "src", "Dialects", i), force=true)
+        mv(joinpath("output", i), joinpath(@__DIR__, "..", "src", "dialects", i), force=true)
         println(io, "include(\"$i\")")
     end
 end
