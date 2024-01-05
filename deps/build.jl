@@ -40,9 +40,6 @@ run(`$(clang()) $files $CXXFLAGS $LDFLAGS $extra $libs $output`)
 # generate bindings
 println("Generating bindings...")
 
-isdir("output") && rm("output"; recursive=true)
-mkdir("output")
-
 target_dialects = [
     ("Builtin.jl", "../IR/BuiltinOps.td"),
     ("AMDGPU.jl", "AMDGPU/AMDGPU.td"),
