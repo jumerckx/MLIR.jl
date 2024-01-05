@@ -18,7 +18,7 @@ operandsegmentsizes(segments) = namedattribute(
         Int32.(segments)
     )))
 
-include("Dialects/Dialects.jl")
+include("dialects/Dialects.jl")
 
 # module arith
 

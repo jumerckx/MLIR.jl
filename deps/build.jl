@@ -87,7 +87,7 @@ for (output, path) in target_dialects
     println("- Generated \"$output\" from \"$path\"")
 end
 
-open(joinpath(@__DIR__, "..", "src", "Dialects", "Dialects.jl"), write=true, create=true) do io
+open(joinpath(@__DIR__, "..", "src", "dialects", "Dialects.jl"), write=true, create=true) do io
     for i in readdir("output")
         mv(joinpath("output", i), joinpath(@__DIR__, "..", "src", "Dialects", i), force=true)
         println(io, "include(\"$i\")")
