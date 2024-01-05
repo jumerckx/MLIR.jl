@@ -18,7 +18,11 @@ operandsegmentsizes(segments) = namedattribute(
         Int32.(segments)
     )))
 
-include("dialects/Dialects.jl")
+for file in readdir(joinpath(@__DIR__, "dialects"))
+    if splitext(file)[end] == ".jl" # filter out .gitignore
+        include(joinpath(@__DIR__, "dialects", file))
+    end
+end
 
 # module arith
 
