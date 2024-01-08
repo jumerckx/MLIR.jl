@@ -49,10 +49,16 @@ end
 """
 `addi`
 
+Performs N-bit addition on the operands. The operands are interpreted as 
+unsigned bitvectors. The result is represented by a bitvector containing the 
+mathematical value of the addition modulo 2^n, where `n` is the bitwidth. 
+Because `arith` integers use a two\'s complement representation, this operation 
+is applicable on both signed and unsigned integer operands.
+
 The `addi` operation takes two operands and returns one result, each of
-these is required to be the same type. This type may be an integer scalar
-type, a vector whose element type is integer, or a tensor of integers. It
-has no standard attributes.
+these is required to be the same type. This type may be an integer scalar type, 
+a vector whose element type is integer, or a tensor of integers. It has no 
+standard attributes.
 
 # Example
 
@@ -88,7 +94,7 @@ end
 
 Performs (N+1)-bit addition on zero-extended operands. Returns two results:
 the N-bit sum (same type as both operands), and the overflow bit
-(boolean-like), where`1` indicates unsigned addition overflow, while `0`
+(boolean-like), where `1` indicates unsigned addition overflow, while `0`
 indicates no overflow.
 
 # Example
@@ -194,8 +200,10 @@ end
 
 Signed integer division. Rounds towards positive infinity, i.e. `7 / -2 = -3`.
 
-Note: the semantics of division by zero or signed division overflow (minimum
-value divided by -1) is TBD; do NOT assume any specific behavior.
+Divison by zero, or signed division overflow (minimum value divided by -1) 
+is undefined behavior. When applied to `vector` and `tensor` values, the 
+behavior is undefined if _any_ of its elements are divided by zero or has a 
+signed division overflow.
 
 # Example
 
@@ -225,10 +233,11 @@ end
 
 Unsigned integer division. Rounds towards positive infinity. Treats the
 leading bit as the most significant, i.e. for `i16` given two\'s complement
-representation, `6 / -2 = 6 / (2^16 - 2) = 1`.
+representation, `6 / -2 = 6 / (2^16 - 2) = 1`. 
 
-Note: the semantics of division by zero is TBD; do NOT assume any specific
-behavior.
+Division by zero is undefined behavior. When applied to `vector` and 
+`tensor` values, the behavior is undefined if _any_ elements are divided by 
+zero.
 
 # Example
 
@@ -280,13 +289,14 @@ attribute by the parser.
 %r3 = \"arith.cmpf\"(%0, %1) {predicate: 0} : (f8, f8) -> i1
 ```
 """
-function cmpf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, location=Location())
+function cmpf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, predicate::Union{Attribute, NamedAttribute}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("predicate", predicate), ]
     (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
     
     create_operation(
         "arith.cmpf", location;
@@ -437,8 +447,10 @@ end
 Signed integer division. Rounds towards zero. Treats the leading bit as
 sign, i.e. `6 / -2 = -3`.
 
-Note: the semantics of division by zero or signed division overflow (minimum
-value divided by -1) is TBD; do NOT assume any specific behavior.
+Divison by zero, or signed division overflow (minimum value divided by -1) 
+is undefined behavior. When applied to `vector` and `tensor` values, the 
+behavior is undefined if _any_ of its elements are divided by zero or has a 
+signed division overflow.
 
 # Example
 
@@ -476,8 +488,9 @@ Unsigned integer division. Rounds towards zero. Treats the leading bit as
 the most significant, i.e. for `i16` given two\'s complement representation,
 `6 / -2 = 6 / (2^16 - 2) = 0`.
 
-Note: the semantics of division by zero is TBD; do NOT assume any specific
-behavior.
+Division by zero is undefined behavior. When applied to `vector` and 
+`tensor` values, the behavior is undefined if _any_ elements are divided by 
+zero.
 
 # Example
 
@@ -648,8 +661,10 @@ end
 
 Signed integer division. Rounds towards negative infinity, i.e. `5 / -2 = -3`.
 
-Note: the semantics of division by zero or signed division overflow (minimum
-value divided by -1) is TBD; do NOT assume any specific behavior.
+Divison by zero, or signed division overflow (minimum value divided by -1) 
+is undefined behavior. When applied to `vector` and `tensor` values, the 
+behavior is undefined if _any_ of its elements are divided by zero or has a 
+signed division overflow.
 
 # Example
 
@@ -722,25 +737,20 @@ function index_castui(in::Value; out::MLIRType, location=Location())
 end
 
 """
-`maxf`
+`maxnumf`
 
-# Syntax
-
-```
-operation ::= ssa-id `=` `arith.maxf` ssa-use `,` ssa-use `:` type
-```
-
-Returns the maximum of the two arguments, treating -0.0 as less than +0.0.
-If one of the arguments is NaN, then the result is also NaN.
+Returns the maximum of the two arguments.
+If the arguments are -0.0 and +0.0, then the result is either of them.
+If one of the arguments is NaN, then the result is the other argument.
 
 # Example
 
 ```mlir
 // Scalar floating-point maximum.
-%a = arith.maxf %b, %c : f64
+%a = arith.maxnumf %b, %c : f64
 ```
 """
-function maxf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function maxnumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -750,7 +760,7 @@ function maxf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, 
     (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
     
     create_operation(
-        "arith.maxf", location;
+        "arith.maxnumf", location;
         operands, owned_regions, successors, attributes,
         results=(length(results) == 0 ? nothing : results),
         result_inference=(length(results) == 0 ? true : false)
@@ -798,25 +808,19 @@ function maxui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType},
 end
 
 """
-`minf`
+`maximumf`
 
-# Syntax
-
-```
-operation ::= ssa-id `=` `arith.minf` ssa-use `,` ssa-use `:` type
-```
-
-Returns the minimum of the two arguments, treating -0.0 as less than +0.0.
+Returns the maximum of the two arguments, treating -0.0 as less than +0.0.
 If one of the arguments is NaN, then the result is also NaN.
 
 # Example
 
 ```mlir
-// Scalar floating-point minimum.
-%a = arith.minf %b, %c : f64
+// Scalar floating-point maximum.
+%a = arith.maximumf %b, %c : f64
 ```
 """
-function minf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function maximumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
@@ -826,7 +830,38 @@ function minf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, 
     (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
     
     create_operation(
-        "arith.minf", location;
+        "arith.maximumf", location;
+        operands, owned_regions, successors, attributes,
+        results=(length(results) == 0 ? nothing : results),
+        result_inference=(length(results) == 0 ? true : false)
+    )
+end
+
+"""
+`minnumf`
+
+Returns the minimum of the two arguments.
+If the arguments are -0.0 and +0.0, then the result is either of them.
+If one of the arguments is NaN, then the result is the other argument.
+
+# Example
+
+```mlir
+// Scalar floating-point minimum.
+%a = arith.minnumf %b, %c : f64
+```
+"""
+function minnumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.minnumf", location;
         operands, owned_regions, successors, attributes,
         results=(length(results) == 0 ? nothing : results),
         result_inference=(length(results) == 0 ? true : false)
@@ -867,6 +902,36 @@ function minui(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType},
     
     create_operation(
         "arith.minui", location;
+        operands, owned_regions, successors, attributes,
+        results=(length(results) == 0 ? nothing : results),
+        result_inference=(length(results) == 0 ? true : false)
+    )
+end
+
+"""
+`minimumf`
+
+Returns the minimum of the two arguments, treating -0.0 as less than +0.0.
+If one of the arguments is NaN, then the result is also NaN.
+
+# Example
+
+```mlir
+// Scalar floating-point minimum.
+%a = arith.minimumf %b, %c : f64
+```
+"""
+function minimumf(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, fastmath=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[lhs, rhs, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    (result != nothing) && push!(results, result)
+    (fastmath != nothing) && push!(attributes, namedattribute("fastmath", fastmath))
+    
+    create_operation(
+        "arith.minimumf", location;
         operands, owned_regions, successors, attributes,
         results=(length(results) == 0 ? nothing : results),
         result_inference=(length(results) == 0 ? true : false)
@@ -917,6 +982,16 @@ end
 """
 `muli`
 
+Performs N-bit multiplication on the operands. The operands are interpreted as 
+unsigned bitvectors. The result is represented by a bitvector containing the 
+mathematical value of the multiplication modulo 2^n, where `n` is the bitwidth. 
+Because `arith` integers use a two\'s complement representation, this operation is 
+applicable on both signed and unsigned integer operands.
+
+The `muli` operation takes two operands and returns one result, each of
+these is required to be the same type. This type may be an integer scalar type, 
+a vector whose element type is integer, or a tensor of integers. It has no 
+standard attributes.
 """
 function muli(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
@@ -1112,8 +1187,9 @@ end
 Signed integer division remainder. Treats the leading bit as sign, i.e. `6 %
 -2 = 0`.
 
-Note: the semantics of division by zero is TBD; do NOT assume any specific
-behavior.
+Division by zero is undefined behavior. When applied to `vector` and 
+`tensor` values, the behavior is undefined if _any_ elements are divided by 
+zero.
 
 # Example
 
@@ -1150,8 +1226,9 @@ end
 Unsigned integer division remainder. Treats the leading bit as the most
 significant, i.e. for `i16`, `6 % -2 = 6 % (2^16 - 2) = 6`.
 
-Note: the semantics of division by zero is TBD; do NOT assume any specific
-behavior.
+Division by zero is undefined behavior. When applied to `vector` and 
+`tensor` values, the behavior is undefined if _any_ elements are divided by 
+zero.
 
 # Example
 
@@ -1208,8 +1285,11 @@ end
 """
 `shli`
 
-The `shli` operation shifts an integer value to the left by a variable
-amount. The low order bits are filled with zeros.
+The `shli` operation shifts the integer value of the first operand to the left 
+by the integer value of the second operand. The second operand is interpreted as 
+unsigned. The low order bits are filled with zeros. If the value of the second 
+operand is greater than the bitwidth of the first operand, then the 
+operation returns poison.
 
 # Example
 
@@ -1238,10 +1318,13 @@ end
 """
 `shrsi`
 
-The `shrsi` operation shifts an integer value to the right by a variable
-amount. The integer is interpreted as signed. The high order bits in the
-output are filled with copies of the most-significant bit of the shifted
-value (which means that the sign of the value is preserved).
+The `shrsi` operation shifts an integer value of the first operand to the right 
+by the value of the second operand. The first operand is interpreted as signed, 
+and the second operand is interpreter as unsigned. The high order bits in the 
+output are filled with copies of the most-significant bit of the shifted value 
+(which means that the sign of the value is preserved). If the value of the second 
+operand is greater than bitwidth of the first operand, then the operation returns 
+poison.
 
 # Example
 
@@ -1272,9 +1355,11 @@ end
 """
 `shrui`
 
-The `shrui` operation shifts an integer value to the right by a variable
-amount. The integer is interpreted as unsigned. The high order bits are
-always filled with zeros.
+The `shrui` operation shifts an integer value of the first operand to the right 
+by the value of the second operand. The first operand is interpreted as unsigned,
+and the second operand is interpreted as unsigned. The high order bits are always 
+filled with zeros. If the value of the second operand is greater than the bitwidth
+of the first operand, then the operation returns poison.
 
 # Example
 
@@ -1344,6 +1429,16 @@ end
 """
 `subi`
 
+Performs N-bit subtraction on the operands. The operands are interpreted as unsigned 
+bitvectors. The result is represented by a bitvector containing the mathematical 
+value of the subtraction modulo 2^n, where `n` is the bitwidth. Because `arith` 
+integers use a two\'s complement representation, this operation is applicable on 
+both signed and unsigned integer operands.
+
+The `subi` operation takes two operands and returns one result, each of
+these is required to be the same type. This type may be an integer scalar type, 
+a vector whose element type is integer, or a tensor of integers. It has no 
+standard attributes.
 """
 function subi(lhs::Value, rhs::Value; result=nothing::Union{Nothing, MLIRType}, location=Location())
     results = MLIRType[]
@@ -1481,9 +1576,16 @@ end
 `select`
 
 The `arith.select` operation chooses one value based on a binary condition
-supplied as its first operand. If the value of the first operand is `1`,
-the second operand is chosen, otherwise the third operand is chosen.
-The second and the third operand must have the same type.
+supplied as its first operand. 
+
+If the value of the first operand (the condition) is `1`, then the second 
+operand is returned, and the third operand is ignored, even if it was poison. 
+
+If the value of the first operand (the condition) is `0`, then the third 
+operand is returned, and the second operand is ignored, even if it was poison. 
+
+If the value of the first operand (the condition) is poison, then the 
+operation returns poison. 
 
 The operation applies to vectors and tensors elementwise given the _shape_
 of all operands is identical. The choice is made for each element

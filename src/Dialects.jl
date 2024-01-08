@@ -36,6 +36,10 @@ include("dialects/func.jl")
 
 include("dialects/affine.jl")
 
+include("dialects/linalg.jl")
+
+include("dialects/transform.jl")
+
 # include("dialects/Ub.jl")
 
 # include("dialects/SCF.jl")

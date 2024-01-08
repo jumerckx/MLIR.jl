@@ -19,12 +19,13 @@ entities.
 pdl.apply_native_constraint \"myConstraint\"(%input, %attr, %op : !pdl.value, !pdl.attribute, !pdl.operation)
 ```
 """
-function apply_native_constraint(args::Vector{Value}; name::Union{Attribute, NamedAttribute}, location=Location())
+function apply_native_constraint(args::Vector{Value}; name::Union{Attribute, NamedAttribute}, isNegated=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[args..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("name", name), ]
+    (isNegated != nothing) && push!(attributes, namedattribute("isNegated", isNegated))
     
     create_operation(
         "pdl.apply_native_constraint", location;
@@ -442,7 +443,7 @@ pdl.replace %root with (%vals : !pdl.range<value>)
 pdl.replace %root with %otherOp
 ```
 """
-function replace(opValue::Value, replOperation=nothing::Union{Nothing, Value}, replValues::Vector{Value}; location=Location())
+function replace(opValue::Value, replOperation=nothing::Union{Nothing, Value}; replValues::Vector{Value}, location=Location())
     results = MLIRType[]
     operands = Value[opValue, replValues..., ]
     owned_regions = Region[]
@@ -580,7 +581,7 @@ pdl.rewrite {
 }
 ```
 """
-function rewrite(root=nothing::Union{Nothing, Value}, externalArgs::Vector{Value}; name=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, bodyRegion::Region, location=Location())
+function rewrite(root=nothing::Union{Nothing, Value}; externalArgs::Vector{Value}, name=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, bodyRegion::Region, location=Location())
     results = MLIRType[]
     operands = Value[externalArgs..., ]
     owned_regions = Region[bodyRegion, ]

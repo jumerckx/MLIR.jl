@@ -8,7 +8,8 @@ import ...API
 """
 `assert`
 
-Assert operation with single boolean operand and an error message attribute.
+Assert operation at runtime with single boolean operand and an error
+message attribute.
 If the argument is `true` this operation has no effect. Otherwise, the
 program execution will abort. The provided error message may be used by a
 runtime to propagate the error to the user.

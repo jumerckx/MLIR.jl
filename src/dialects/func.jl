@@ -122,8 +122,8 @@ for function arguments, results, or the function itself.
 
 ```mlir
 // External function definitions.
-func.func @abort()
-func.func @scribble(i32, i64, memref<? x 128 x f32, #layout_map0>) -> f64
+func.func private @abort()
+func.func private @scribble(i32, i64, memref<? x 128 x f32, #layout_map0>) -> f64
 
 // A function that returns its argument twice:
 func.func @count(%x: i64) -> (i64, i64)
@@ -132,13 +132,13 @@ func.func @count(%x: i64) -> (i64, i64)
 }
 
 // A function with an argument attribute
-func.func @example_fn_arg(%x: i32 {swift.self = unit})
+func.func private @example_fn_arg(%x: i32 {swift.self = unit})
 
 // A function with a result attribute
-func.func @example_fn_result() -> (f64 {dialectName.attrName = 0 : i64})
+func.func private @example_fn_result() -> (f64 {dialectName.attrName = 0 : i64})
 
 // A function with an attribute
-func.func @example_fn_attr() attributes {dialectName.attrName = false}
+func.func private @example_fn_attr() attributes {dialectName.attrName = false}
 ```
 """
 function func_(; sym_name::Union{Attribute, NamedAttribute}, function_type::Union{Attribute, NamedAttribute}, sym_visibility=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arg_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, res_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, body::Region, location=Location())

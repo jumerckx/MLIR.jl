@@ -6,6 +6,35 @@ import ...API
 
 
 """
+`ext_packed_fp8`
+
+Extend the value `source[index]` to a 32-bit float and return it.
+
+This rather unusual signature arises from the fact that AMD GPUs cannot
+easily work with sub 32-bit quantities, so the compiler intrinsics for
+extending 8-bit floats (which are, currently, the only way to work with
+this operation) take packed vectors of 4 such floats.
+
+If the passed-in vector has fewer than four elements, or the input is scalar,
+the remaining values in the <4 x i8> will be filled with with
+undefined values as needed.
+"""
+function ext_packed_fp8(source::Value; res::MLIRType, index::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[res, ]
+    operands = Value[source, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("index", index), ]
+    
+    create_operation(
+        "amdgpu.ext_packed_fp8", location;
+        operands, owned_regions, successors, attributes,
+        results=results,
+        result_inference=false
+    )
+end
+
+"""
 `lds_barrier`
 
 `amdgpu.lds_barrier` is both a barrier (all workitems in a workgroup must reach
@@ -80,6 +109,67 @@ function mfma(sourceA::Value, sourceB::Value, destC::Value; destD::MLIRType, m::
     
     create_operation(
         "amdgpu.mfma", location;
+        operands, owned_regions, successors, attributes,
+        results=results,
+        result_inference=false
+    )
+end
+
+"""
+`packed_stoch_round_fp8`
+
+Round the input `source`, adding in `stochiasticParam`, and place it into
+the `storeIndex`th element of `res`.
+
+If `existing` is passed in, elements of `res` other than the one at `storeIndex`
+are copied from `existing`.
+
+The reason for this odd signature is that AMD GPUs cannot easily work with
+sub-registers, and so the conversion intrinsics (which are currently the
+only way to work with 8-bit float types) take packed vectors of 4 8-bit
+values.
+"""
+function packed_stoch_round_fp8(source::Value, stochiasticParam::Value, existing=nothing::Union{Nothing, Value}; res::MLIRType, storeIndex::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[res, ]
+    operands = Value[source, stochiasticParam, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("storeIndex", storeIndex), ]
+    (existing != nothing) && push!(operands, existing)
+    
+    create_operation(
+        "amdgpu.packed_stoch_round_fp8", location;
+        operands, owned_regions, successors, attributes,
+        results=results,
+        result_inference=false
+    )
+end
+
+"""
+`packed_trunc_2xfp8`
+
+Round the inputs `sourceA` and `sourceB` (which is undefined if not
+specified) into the low or high word (bottom two or top two) elements
+of the returned vector, keeping the other two elements of `existing`
+unchanged if present (or undefined if it was not passed in).
+
+The reason for this odd signature is that AMD GPUs cannot easily work with
+sub-registers, and so the conversion intrinsics (which are currently the
+only way to work with 8-bit float types) take packed vectors of 4 8-bit
+values.
+"""
+function packed_trunc_2xfp8(sourceA::Value, sourceB=nothing::Union{Nothing, Value}; existing=nothing::Union{Nothing, Value}, res::MLIRType, wordIndex::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[res, ]
+    operands = Value[sourceA, ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("wordIndex", wordIndex), ]
+    (sourceB != nothing) && push!(operands, sourceB)
+    (existing != nothing) && push!(operands, existing)
+    push!(attributes, operandsegmentsizes([1, (sourceB==nothing) ? 0 : 1(existing==nothing) ? 0 : 1]))
+    
+    create_operation(
+        "amdgpu.packed_trunc_2xfp8", location;
         operands, owned_regions, successors, attributes,
         results=results,
         result_inference=false

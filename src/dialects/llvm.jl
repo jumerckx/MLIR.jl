@@ -29,13 +29,14 @@ end
 `add`
 
 """
-function add(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, location=Location())
+function add(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
     (res != nothing) && push!(results, res)
+    (overflowFlags != nothing) && push!(attributes, namedattribute("overflowFlags", overflowFlags))
     
     create_operation(
         "llvm.add", location;
@@ -77,16 +78,16 @@ Examples:
 ```mlir
 func @foo() {
   // Get the address of a global variable.
-  %0 = llvm.mlir.addressof @const : !llvm.ptr<i32>
+  %0 = llvm.mlir.addressof @const : !llvm.ptr
 
   // Use it as a regular pointer.
-  %1 = llvm.load %0 : !llvm.ptr<i32>
+  %1 = llvm.load %0 : !llvm.ptr -> i32
 
   // Get the address of a function.
-  %2 = llvm.mlir.addressof @foo : !llvm.ptr<func<void ()>>
+  %2 = llvm.mlir.addressof @foo : !llvm.ptr
 
   // The function address can be used for indirect calls.
-  llvm.call %2() : () -> ()
+  llvm.call %2() : !llvm.ptr, () -> ()
 }
 
 // Define the global.
@@ -112,14 +113,13 @@ end
 `alloca`
 
 """
-function alloca(arraySize::Value; res::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, elem_type=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, inalloca=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function alloca(arraySize::Value; res::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, elem_type::Union{Attribute, NamedAttribute}, inalloca=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[res, ]
     operands = Value[arraySize, ]
     owned_regions = Region[]
     successors = Block[]
-    attributes = NamedAttribute[]
+    attributes = NamedAttribute[namedattribute("elem_type", elem_type), ]
     (alignment != nothing) && push!(attributes, namedattribute("alignment", alignment))
-    (elem_type != nothing) && push!(attributes, namedattribute("elem_type", elem_type))
     (inalloca != nothing) && push!(attributes, namedattribute("inalloca", inalloca))
     
     create_operation(
@@ -245,6 +245,29 @@ function br(destOperands::Vector{Value}; loop_annotation=nothing::Union{Nothing,
 end
 
 """
+`call_intrinsic`
+
+Call the specified llvm intrinsic. If the intrinsic is overloaded, use
+the MLIR function type of this op to determine which intrinsic to call.
+"""
+function call_intrinsic(args::Vector{Value}; results=nothing::Union{Nothing, MLIRType}, intrin::Union{Attribute, NamedAttribute}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+    results = MLIRType[]
+    operands = Value[args..., ]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("intrin", intrin), ]
+    (results != nothing) && push!(results, results)
+    (fastmathFlags != nothing) && push!(attributes, namedattribute("fastmathFlags", fastmathFlags))
+    
+    create_operation(
+        "llvm.call_intrinsic", location;
+        operands, owned_regions, successors, attributes,
+        results=results,
+        result_inference=false
+    )
+end
+
+"""
 `call`
 
 In LLVM IR, functions may return either 0 or 1 value. LLVM IR dialect
@@ -255,10 +278,12 @@ IR dialect disallows them.
 The `call` instruction supports both direct and indirect calls. Direct calls
 start with a function name (`@`-prefixed) and indirect calls start with an
 SSA value (`%`-prefixed). The direct callee, if present, is stored as a
-function attribute `callee`. The trailing type list contains the optional
-indirect callee type and the MLIR function type, which differs from the
-LLVM function type that uses a explicit void type to model functions that do
-not return a value.
+function attribute `callee`. For indirect calls, the callee is of `!llvm.ptr` type
+and is stored as the first value in `callee_operands`. If the callee is a variadic
+function, then the `callee_type` attribute must carry the function type. The
+trailing type list contains the optional indirect callee type and the MLIR
+function type, which differs from the LLVM function type that uses a explicit
+void type to model functions that do not return a value.
 
 Examples:
 
@@ -270,19 +295,28 @@ Examples:
 llvm.call @bar(%0) : (f32) -> ()
 
 // Indirect call with an argument and without a result.
+%1 = llvm.mlir.addressof @foo : !llvm.ptr
 llvm.call %1(%0) : !llvm.ptr, (f32) -> ()
+
+// Direct variadic call.
+llvm.call @printf(%0, %1) vararg(!llvm.func<i32 (ptr, ...)>) : (!llvm.ptr, i32) -> i32
+
+// Indirect variadic call
+llvm.call %1(%0) vararg(!llvm.func<void (...)>) : !llvm.ptr, (i32) -> ()
 ```
 """
-function call(operand_0::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, callee=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function call(callee_operands::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, callee_type=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, callee=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, fastmathFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, CConv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
-    operands = Value[operand_0..., ]
+    operands = Value[callee_operands..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
     (result != nothing) && push!(results, result)
+    (callee_type != nothing) && push!(attributes, namedattribute("callee_type", callee_type))
     (callee != nothing) && push!(attributes, namedattribute("callee", callee))
     (fastmathFlags != nothing) && push!(attributes, namedattribute("fastmathFlags", fastmathFlags))
     (branch_weights != nothing) && push!(attributes, namedattribute("branch_weights", branch_weights))
+    (CConv != nothing) && push!(attributes, namedattribute("CConv", CConv))
     (access_groups != nothing) && push!(attributes, namedattribute("access_groups", access_groups))
     (alias_scopes != nothing) && push!(attributes, namedattribute("alias_scopes", alias_scopes))
     (noalias_scopes != nothing) && push!(attributes, namedattribute("noalias_scopes", noalias_scopes))
@@ -738,23 +772,22 @@ Examples:
 
 ```mlir
 // GEP with an SSA value offset
-%0 = llvm.getelementptr %1[%2] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
+%0 = llvm.getelementptr %1[%2] : (!llvm.ptr, i64) -> !llvm.ptr, f32
 
 // GEP with a constant offset and the inbounds attribute set
-%0 = llvm.getelementptr inbounds %1[3] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
+%0 = llvm.getelementptr inbounds %1[3] : (!llvm.ptr) -> !llvm.ptr, f32
 
 // GEP with constant offsets into a structure
 %0 = llvm.getelementptr %1[0, 1]
-   : (!llvm.ptr<struct(i32, f32)>) -> !llvm.ptr<f32>
+   : (!llvm.ptr) -> !llvm.ptr, !llvm.struct<(i32, f32)>
 ```
 """
-function getelementptr(base::Value, dynamicIndices::Vector{Value}; res::MLIRType, rawConstantIndices::Union{Attribute, NamedAttribute}, elem_type=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, inbounds=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function getelementptr(base::Value, dynamicIndices::Vector{Value}; res::MLIRType, rawConstantIndices::Union{Attribute, NamedAttribute}, elem_type::Union{Attribute, NamedAttribute}, inbounds=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[res, ]
     operands = Value[base, dynamicIndices..., ]
     owned_regions = Region[]
     successors = Block[]
-    attributes = NamedAttribute[namedattribute("rawConstantIndices", rawConstantIndices), ]
-    (elem_type != nothing) && push!(attributes, namedattribute("elem_type", elem_type))
+    attributes = NamedAttribute[namedattribute("rawConstantIndices", rawConstantIndices), namedattribute("elem_type", elem_type), ]
     (inbounds != nothing) && push!(attributes, namedattribute("inbounds", inbounds))
     
     create_operation(
@@ -861,13 +894,13 @@ given in an initializer region:
 ```mlir
 // This global is initialized with the equivalent of:
 //   i32* getelementptr (i32* @g2, i32 2)
-llvm.mlir.global constant @int_gep() : !llvm.ptr<i32> {
-  %0 = llvm.mlir.addressof @g2 : !llvm.ptr<i32>
+llvm.mlir.global constant @int_gep() : !llvm.ptr {
+  %0 = llvm.mlir.addressof @g2 : !llvm.ptr
   %1 = llvm.mlir.constant(2 : i32) : i32
   %2 = llvm.getelementptr %0[%1]
-     : (!llvm.ptr<i32>, i32) -> !llvm.ptr<i32>
+     : (!llvm.ptr, i32) -> !llvm.ptr, i32
   // The initializer region must end with `llvm.return`.
-  llvm.return %2 : !llvm.ptr<i32>
+  llvm.return %2 : !llvm.ptr
 }
 ```
 
@@ -894,12 +927,12 @@ llvm.mlir.global @string(\"abc\") : !llvm.array<3 x i8>
 llvm.mlir.global constant @no_trailing_type(\"foo bar\")
 
 // A complex initializer is constructed with an initializer region.
-llvm.mlir.global constant @int_gep() : !llvm.ptr<i32> {
-  %0 = llvm.mlir.addressof @g2 : !llvm.ptr<i32>
+llvm.mlir.global constant @int_gep() : !llvm.ptr {
+  %0 = llvm.mlir.addressof @g2 : !llvm.ptr
   %1 = llvm.mlir.constant(2 : i32) : i32
   %2 = llvm.getelementptr %0[%1]
-     : (!llvm.ptr<i32>, i32) -> !llvm.ptr<i32>
-  llvm.return %2 : !llvm.ptr<i32>
+     : (!llvm.ptr, i32) -> !llvm.ptr, i32
+  llvm.return %2 : !llvm.ptr
 }
 ```
 
@@ -933,7 +966,7 @@ Examples:
 llvm.mlir.global private constant @y(dense<1.0> : tensor<8xf32>) { alignment = 32 : i64 } : !llvm.array<8 x f32>
 ```
 """
-function mlir_global(; global_type::Union{Attribute, NamedAttribute}, constant=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, sym_name::Union{Attribute, NamedAttribute}, linkage::Union{Attribute, NamedAttribute}, dso_local=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, thread_local_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, value=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, addr_space=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unnamed_addr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, section=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, comdat=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, visibility_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, initializer::Region, location=Location())
+function mlir_global(; global_type::Union{Attribute, NamedAttribute}, constant=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, sym_name::Union{Attribute, NamedAttribute}, linkage::Union{Attribute, NamedAttribute}, dso_local=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, thread_local_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, value=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, addr_space=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unnamed_addr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, section=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, comdat=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, dbg_expr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, visibility_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, initializer::Region, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[initializer, ]
@@ -948,6 +981,7 @@ function mlir_global(; global_type::Union{Attribute, NamedAttribute}, constant=n
     (unnamed_addr != nothing) && push!(attributes, namedattribute("unnamed_addr", unnamed_addr))
     (section != nothing) && push!(attributes, namedattribute("section", section))
     (comdat != nothing) && push!(attributes, namedattribute("comdat", comdat))
+    (dbg_expr != nothing) && push!(attributes, namedattribute("dbg_expr", dbg_expr))
     (visibility_ != nothing) && push!(attributes, namedattribute("visibility_", visibility_))
     
     create_operation(
@@ -1071,15 +1105,17 @@ end
 `invoke`
 
 """
-function invoke(callee_operands::Vector{Value}, normalDestOperands::Vector{Value}, unwindDestOperands::Vector{Value}; result_0::Vector{MLIRType}, callee=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, normalDest::Block, unwindDest::Block, location=Location())
+function invoke(callee_operands::Vector{Value}, normalDestOperands::Vector{Value}, unwindDestOperands::Vector{Value}; result_0::Vector{MLIRType}, callee_type=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, callee=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, branch_weights=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, CConv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, normalDest::Block, unwindDest::Block, location=Location())
     results = MLIRType[result_0..., ]
     operands = Value[callee_operands..., normalDestOperands..., unwindDestOperands..., ]
     owned_regions = Region[]
     successors = Block[normalDest, unwindDest, ]
     attributes = NamedAttribute[]
     push!(attributes, operandsegmentsizes([length(callee_operands), length(normalDestOperands), length(unwindDestOperands), ]))
+    (callee_type != nothing) && push!(attributes, namedattribute("callee_type", callee_type))
     (callee != nothing) && push!(attributes, namedattribute("callee", callee))
     (branch_weights != nothing) && push!(attributes, namedattribute("branch_weights", branch_weights))
+    (CConv != nothing) && push!(attributes, namedattribute("CConv", CConv))
     
     create_operation(
         "llvm.invoke", location;
@@ -1118,12 +1154,13 @@ llvm.func internal @internal_func() {
 }
 ```
 """
-function func(; sym_name::Union{Attribute, NamedAttribute}, function_type::Union{Attribute, NamedAttribute}, linkage=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, dso_local=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, CConv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, comdat=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, personality=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, garbageCollector=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, passthrough=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arg_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, res_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, function_entry_count=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, memory=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, visibility_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_streaming=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_locally_streaming=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, section=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unnamed_addr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, body::Region, location=Location())
+function func(; sym_name::Union{Attribute, NamedAttribute}, sym_visibility=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, function_type::Union{Attribute, NamedAttribute}, linkage=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, dso_local=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, CConv=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, comdat=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, personality=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, garbageCollector=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, passthrough=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arg_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, res_attrs=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, function_entry_count=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, memory=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, visibility_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_streaming=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_locally_streaming=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_streaming_compatible=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, arm_new_za=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, section=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, unnamed_addr=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, vscale_range=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, frame_pointer=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, target_features=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, body::Region, location=Location())
     results = MLIRType[]
     operands = Value[]
     owned_regions = Region[body, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("sym_name", sym_name), namedattribute("function_type", function_type), ]
+    (sym_visibility != nothing) && push!(attributes, namedattribute("sym_visibility", sym_visibility))
     (linkage != nothing) && push!(attributes, namedattribute("linkage", linkage))
     (dso_local != nothing) && push!(attributes, namedattribute("dso_local", dso_local))
     (CConv != nothing) && push!(attributes, namedattribute("CConv", CConv))
@@ -1138,9 +1175,14 @@ function func(; sym_name::Union{Attribute, NamedAttribute}, function_type::Union
     (visibility_ != nothing) && push!(attributes, namedattribute("visibility_", visibility_))
     (arm_streaming != nothing) && push!(attributes, namedattribute("arm_streaming", arm_streaming))
     (arm_locally_streaming != nothing) && push!(attributes, namedattribute("arm_locally_streaming", arm_locally_streaming))
+    (arm_streaming_compatible != nothing) && push!(attributes, namedattribute("arm_streaming_compatible", arm_streaming_compatible))
+    (arm_new_za != nothing) && push!(attributes, namedattribute("arm_new_za", arm_new_za))
     (section != nothing) && push!(attributes, namedattribute("section", section))
     (unnamed_addr != nothing) && push!(attributes, namedattribute("unnamed_addr", unnamed_addr))
     (alignment != nothing) && push!(attributes, namedattribute("alignment", alignment))
+    (vscale_range != nothing) && push!(attributes, namedattribute("vscale_range", vscale_range))
+    (frame_pointer != nothing) && push!(attributes, namedattribute("frame_pointer", frame_pointer))
+    (target_features != nothing) && push!(attributes, namedattribute("target_features", target_features))
     
     create_operation(
         "llvm.func", location;
@@ -1191,6 +1233,37 @@ function landingpad(operand_0::Vector{Value}; res::MLIRType, cleanup=nothing::Un
 end
 
 """
+`linker_options`
+
+Pass the given options to the linker when the resulting object file is linked.
+This is used extensively on Windows to determine the C runtime that the object
+files should link against.
+
+Examples:
+```mlir
+// Link against the MSVC static threaded CRT.
+llvm.linker_options [\"/DEFAULTLIB:\", \"libcmt\"]
+
+// Link against aarch64 compiler-rt builtins
+llvm.linker_options [\"-l\", \"clang_rt.builtins-aarch64\"]
+```
+"""
+function linker_options(; options::Union{Attribute, NamedAttribute}, location=Location())
+    results = MLIRType[]
+    operands = Value[]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[namedattribute("options", options), ]
+    
+    create_operation(
+        "llvm.linker_options", location;
+        operands, owned_regions, successors, attributes,
+        results=results,
+        result_inference=false
+    )
+end
+
+"""
 `load`
 
 The `load` operation is used to read from memory. A load may be marked as
@@ -1216,7 +1289,7 @@ Examples:
 See the following link for more details:
 https://llvm.org/docs/LangRef.html#load-instruction
 """
-function load(addr::Value; res::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, volatile_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, nontemporal=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, ordering=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, syncscope=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
+function load(addr::Value; res::MLIRType, alignment=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, volatile_=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, nontemporal=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, invariant=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, ordering=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, syncscope=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, access_groups=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, alias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, noalias_scopes=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, tbaa=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[res, ]
     operands = Value[addr, ]
     owned_regions = Region[]
@@ -1225,6 +1298,7 @@ function load(addr::Value; res::MLIRType, alignment=nothing::Union{Nothing, Unio
     (alignment != nothing) && push!(attributes, namedattribute("alignment", alignment))
     (volatile_ != nothing) && push!(attributes, namedattribute("volatile_", volatile_))
     (nontemporal != nothing) && push!(attributes, namedattribute("nontemporal", nontemporal))
+    (invariant != nothing) && push!(attributes, namedattribute("invariant", invariant))
     (ordering != nothing) && push!(attributes, namedattribute("ordering", ordering))
     (syncscope != nothing) && push!(attributes, namedattribute("syncscope", syncscope))
     (access_groups != nothing) && push!(attributes, namedattribute("access_groups", access_groups))
@@ -1241,44 +1315,17 @@ function load(addr::Value; res::MLIRType, alignment=nothing::Union{Nothing, Unio
 end
 
 """
-`metadata`
-
-llvm.metadata op defines one or more metadata nodes.
-
-# Example
-```mlir
-llvm.metadata @metadata {
-  llvm.access_group @group1
-  llvm.access_group @group2
-}
-```
-"""
-function metadata(; sym_name::Union{Attribute, NamedAttribute}, body::Region, location=Location())
-    results = MLIRType[]
-    operands = Value[]
-    owned_regions = Region[body, ]
-    successors = Block[]
-    attributes = NamedAttribute[namedattribute("sym_name", sym_name), ]
-    
-    create_operation(
-        "llvm.metadata", location;
-        operands, owned_regions, successors, attributes,
-        results=results,
-        result_inference=false
-    )
-end
-
-"""
 `mul`
 
 """
-function mul(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, location=Location())
+function mul(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
     (res != nothing) && push!(results, res)
+    (overflowFlags != nothing) && push!(attributes, namedattribute("overflowFlags", overflowFlags))
     
     create_operation(
         "llvm.mul", location;
@@ -1289,35 +1336,32 @@ function mul(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, loca
 end
 
 """
-`mlir_null`
+`mlir_none`
 
-Unlike LLVM IR, MLIR does not have first-class null pointers. They must be
-explicitly created as SSA values using `llvm.mlir.null`. This operation has
-no operands or attributes, and returns a null value of a wrapped LLVM IR
+Unlike LLVM IR, MLIR does not have first-class token values. They must be
+explicitly created as SSA values using `llvm.mlir.none`. This operation has
+no operands or attributes, and returns a none token value of a wrapped LLVM IR
 pointer type.
 
 Examples:
 
 ```mlir
-// Null pointer to i8.
-%0 = llvm.mlir.null : !llvm.ptr<i8>
-
-// Null pointer to a function with signature void().
-%1 = llvm.mlir.null : !llvm.ptr<func<void ()>>
+%0 = llvm.mlir.none : !llvm.token
 ```
 """
-function mlir_null(; res::MLIRType, location=Location())
-    results = MLIRType[res, ]
+function mlir_none(; res=nothing::Union{Nothing, MLIRType}, location=Location())
+    results = MLIRType[]
     operands = Value[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
+    (res != nothing) && push!(results, res)
     
     create_operation(
-        "llvm.mlir.null", location;
+        "llvm.mlir.none", location;
         operands, owned_regions, successors, attributes,
-        results=results,
-        result_inference=false
+        results=(length(results) == 0 ? nothing : results),
+        result_inference=(length(results) == 0 ? true : false)
     )
 end
 
@@ -1533,13 +1577,14 @@ end
 `shl`
 
 """
-function shl(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, location=Location())
+function shl(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
     (res != nothing) && push!(results, res)
+    (overflowFlags != nothing) && push!(attributes, namedattribute("overflowFlags", overflowFlags))
     
     create_operation(
         "llvm.shl", location;
@@ -1622,13 +1667,14 @@ end
 `sub`
 
 """
-function sub(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, location=Location())
+function sub(lhs::Value, rhs::Value; res=nothing::Union{Nothing, MLIRType}, overflowFlags=nothing::Union{Nothing, Union{Attribute, NamedAttribute}}, location=Location())
     results = MLIRType[]
     operands = Value[lhs, rhs, ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
     (res != nothing) && push!(results, res)
+    (overflowFlags != nothing) && push!(attributes, namedattribute("overflowFlags", overflowFlags))
     
     create_operation(
         "llvm.sub", location;
@@ -1820,6 +1866,37 @@ function zext(arg::Value; res::MLIRType, location=Location())
     
     create_operation(
         "llvm.zext", location;
+        operands, owned_regions, successors, attributes,
+        results=results,
+        result_inference=false
+    )
+end
+
+"""
+`mlir_zero`
+
+Unlike LLVM IR, MLIR does not have first-class zero-initialized values.
+Such values must be created as SSA values using `llvm.mlir.zero`. This
+operation has no operands or attributes. It creates a zero-initialized
+value of the specified LLVM IR dialect type.
+
+# Example
+
+```mlir
+// Create a zero-initialized value for a structure with a 32-bit integer
+// followed by a float.
+%0 = llvm.mlir.zero : !llvm.struct<(i32, f32)>
+```
+"""
+function mlir_zero(; res::MLIRType, location=Location())
+    results = MLIRType[res, ]
+    operands = Value[]
+    owned_regions = Region[]
+    successors = Block[]
+    attributes = NamedAttribute[]
+    
+    create_operation(
+        "llvm.mlir.zero", location;
         operands, owned_regions, successors, attributes,
         results=results,
         result_inference=false

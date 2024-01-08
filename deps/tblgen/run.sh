@@ -19,7 +19,7 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALEC
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Shape/IR/ShapeOps.td -I$INCLUDE_PATH > output/shape.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/MemRef/IR/MemRefOps.td -I$INCLUDE_PATH > output/memref.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Complex/IR/ComplexOps.td -I$INCLUDE_PATH > output/complex.jl
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Linalg/IR/LinalgOps.td -I$INCLUDE_PATH > output/linalg_unstructured.jl
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Linalg/IR/LinalgOps.td -I$INCLUDE_PATH > output/linalg.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Linalg/IR/LinalgStructuredOps.td -I$INCLUDE_PATH > output/linalg_structured.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/LLVMIR/LLVMOps.td -I$INCLUDE_PATH > output/llvm.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/AMDGPU/IR/AMDGPU.td -I$INCLUDE_PATH > output/amdgpu.jl
@@ -27,6 +27,8 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALEC
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/ControlFlow/IR/ControlFlowOps.td -I$INCLUDE_PATH > output/cf.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Func/IR/FuncOps.td -I$INCLUDE_PATH > output/func.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Quant/QuantOps.td -I$INCLUDE_PATH > output/quant.jl
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Transform/IR/TransformOps.td -I$INCLUDE_PATH > output/transform.jl
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/Linalg/TransformOps/LinalgTransformOps.td -I$INCLUDE_PATH > output/transform_linalg.jl
 # LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/IRDL/IR/IRDLOps.td -I$INCLUDE_PATH > output/IRDL.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs $DIALECTS_PATH/PDL/IR/PDLOps.td -I$INCLUDE_PATH > output/pdl.jl
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./mlir-jl-tblgen --generator=jl-op-defs /home/jumerckx/masterthesis/llvm-project/mlir/include/mlir/IR/BuiltinOps.td --dialect-name="builtin"  -I$INCLUDE_PATH > output/builtin.jl

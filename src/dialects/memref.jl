@@ -398,12 +398,6 @@ end
 """
 `cast`
 
-# Syntax
-
-```
-operation ::= ssa-id `=` `memref.cast` ssa-use `:` type `to` type
-```
-
 The `memref.cast` operation converts a memref from one type to an equivalent
 type with a compatible shape. The source and destination types are
 compatible if:
@@ -598,6 +592,15 @@ end
 """
 `dma_start`
 
+# Syntax
+
+```
+operation ::= `memref.dma_start` ssa-use`[`ssa-use-list`]` `,`
+               ssa-use`[`ssa-use-list`]` `,` ssa-use `,`
+               ssa-use`[`ssa-use-list`]` (`,` ssa-use `,` ssa-use)?
+              `:` memref-type `,` memref-type `,` memref-type
+```
+
 DmaStartOp starts a non-blocking DMA operation that transfers data from a
 source memref to a destination memref. The source and destination memref
 need not be of the same dimensionality, but need to have the same elemental
@@ -638,9 +641,9 @@ dma_start %src[%i, %j], %dst[%k, %l], %num_elements, %tag[%idx], %stride,
           %num_elt_per_stride :
 ```
 
-TODO: add additional operands to allow source and destination striding, and
+* TODO: add additional operands to allow source and destination striding, and
 multiple stride levels.
-TODO: Consider replacing src/dst memref indices with view memrefs.
+* TODO: Consider replacing src/dst memref indices with view memrefs.
 """
 function dma_start(operands::Vector{Value}; location=Location())
     results = MLIRType[]
@@ -767,8 +770,8 @@ as a pointer is explicitly discouraged.
 ```
   %0 = memref.extract_aligned_pointer_as_index %arg : memref<4x4xf32> -> index
   %1 = arith.index_cast %0 : index to i64
-  %2 = llvm.inttoptr %1 : i64 to !llvm.ptr<f32>
-  call @foo(%2) : (!llvm.ptr<f32>) ->()
+  %2 = llvm.inttoptr %1 : i64 to !llvm.ptr
+  call @foo(%2) : (!llvm.ptr) ->()
 ```
 """
 function extract_aligned_pointer_as_index(source::Value; aligned_pointer=nothing::Union{Nothing, MLIRType}, location=Location())
@@ -1486,36 +1489,6 @@ function subview(source::Value, offsets::Vector{Value}, sizes::Vector{Value}, st
     
     create_operation(
         "memref.subview", location;
-        operands, owned_regions, successors, attributes,
-        results=results,
-        result_inference=false
-    )
-end
-
-"""
-`tensor_store`
-
-Stores the contents of a tensor into a memref. The first operand is a value
-of tensor type, the second operand is a value of memref type. The shapes and
-element types of these must match, and are specified by the memref type.
-
-# Example
-
-```mlir
-%9 = dim %8, 1 : tensor<4x?xf32>
-%10 = memref.alloc(%9) : memref<4x?xf32, #layout, memspace0>
-memref.tensor_store %8, %10 : memref<4x?xf32, #layout, memspace0>
-```
-"""
-function tensor_store(tensor::Value, memref::Value; location=Location())
-    results = MLIRType[]
-    operands = Value[tensor, memref, ]
-    owned_regions = Region[]
-    successors = Block[]
-    attributes = NamedAttribute[]
-    
-    create_operation(
-        "memref.tensor_store", location;
         operands, owned_regions, successors, attributes,
         results=results,
         result_inference=false
