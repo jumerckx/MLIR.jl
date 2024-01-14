@@ -51,6 +51,6 @@ module IR
 end # module IR
 
 include("./Dialects.jl")
-
+include("./Affine.jl")
 
 end # module MLIR

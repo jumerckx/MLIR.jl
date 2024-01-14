@@ -1,6 +1,6 @@
 module linalg
 
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: NamedAttribute, MLIRType, Location, Block, Region, Attribute, create_operation, context, IndexType, get_value, verify
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -44,7 +44,7 @@ scf.for %i = %c0 to %0 step %c1 {
 """
 function index(; result=nothing::Union{Nothing, MLIRType}, dim, location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dim", dim), ]
@@ -78,9 +78,9 @@ of the transformation calling the tiling to ensure that the provided
 sizes for each dimension make sense with respect to the semantic of
 softmax.
 """
-function softmax(input::Value, output::Value; result::Vector{MLIRType}, dimension, location=Location())
+function softmax(input, output; result::Vector{MLIRType}, dimension, location=Location())
     results = MLIRType[result..., ]
-    operands = Value[input, output, ]
+    operands = API.MlirValue[get_value(input), get_value(output), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dimension", dimension), ]
@@ -106,9 +106,9 @@ in `linalg` generic ops. It returns values to the immediately enclosing
 linalg.yield %f0, %f1 : f32, f32
 ```
 """
-function yield(values::Vector{Value}; location=Location())
+function yield(values; location=Location())
     results = MLIRType[]
-    operands = Value[values..., ]
+    operands = API.MlirValue[get_value.(values)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -125,9 +125,9 @@ end
 `abs`
 No numeric casting is performed on the input operand.
 """
-function abs(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function abs(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -151,9 +151,9 @@ passes can take that into account when lowering this code. For example,
 a `linalg.broadcast` + `linalg.add` sequence can be lowered to a
 `linalg.generic` with different affine maps for the two operands.
 """
-function add(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function add(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -172,9 +172,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function batch_matmul(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function batch_matmul(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -193,9 +193,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function batch_matmul_transpose_a(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function batch_matmul_transpose_a(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -214,9 +214,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function batch_matmul_transpose_b(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function batch_matmul_transpose_b(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -235,9 +235,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function batch_matvec(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function batch_matvec(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -258,9 +258,9 @@ linalg.batch_matmul, the differences from linalg.batch_matmul in the
 non-batch dimensions are the same as linalg.mmt4d vs. linalg.matmul. See the
 description of lingalg.mmt4d.
 """
-function batch_mmt4d(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function batch_mmt4d(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -279,9 +279,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function batch_reduce_matmul(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function batch_reduce_matmul(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -300,9 +300,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function batch_vecmat(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function batch_vecmat(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -329,9 +329,9 @@ Broadcast the input into the given shape by adding `dimensions`.
       dimensions = [1]
 ```
 """
-function broadcast(input::Value, init::Value; result::Vector{MLIRType}, dimensions, region::Region, location=Location())
+function broadcast(input, init; result::Vector{MLIRType}, dimensions, region::Region, location=Location())
     results = MLIRType[result..., ]
-    operands = Value[input, init, ]
+    operands = API.MlirValue[get_value(input), get_value(init), ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dimensions", dimensions), ]
@@ -348,9 +348,9 @@ end
 `ceil`
 No numeric casting is performed on the input operand.
 """
-function ceil(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function ceil(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -373,9 +373,9 @@ Layout:
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_1d_ncw_fcw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_1d_ncw_fcw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -396,9 +396,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_1d_nwc_wcf(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_1d_nwc_wcf(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -419,9 +419,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_1d(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function conv_1d(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -444,9 +444,9 @@ Layout:
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_2d_nchw_fchw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_2d_nchw_fchw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -471,9 +471,9 @@ Layout:
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_2d_ngchw_fgchw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_2d_ngchw_fgchw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -498,9 +498,9 @@ Layout:
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_2d_ngchw_gfchw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_2d_ngchw_gfchw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -525,9 +525,9 @@ Layout:
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_2d_nhwc_fhwc(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_2d_nhwc_fhwc(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -553,9 +553,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. This includes the zero
 point offsets common to quantized operations.
 """
-function conv_2d_nhwc_fhwc_q(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_2d_nhwc_fhwc_q(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -580,9 +580,9 @@ Layout:
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_2d_nhwc_hwcf(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_2d_nhwc_hwcf(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -608,9 +608,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. This includes the zero
 point offsets common to quantized operations.
 """
-function conv_2d_nhwc_hwcf_q(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_2d_nhwc_hwcf_q(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -631,9 +631,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_2d(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function conv_2d(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -652,9 +652,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_3d_ncdhw_fcdhw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_3d_ncdhw_fcdhw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -675,9 +675,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_3d_ndhwc_dhwcf(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_3d_ndhwc_dhwcf(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -699,9 +699,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. This includes the zero
 point offsets common to quantized operations.
 """
-function conv_3d_ndhwc_dhwcf_q(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function conv_3d_ndhwc_dhwcf_q(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -722,9 +722,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function conv_3d(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function conv_3d(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -743,9 +743,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function copy(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
+function copy(inputs, outputs; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -766,9 +766,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. Multiplier is set to 1
 which is a special case for most depthwise convolutions.
 """
-function depthwise_conv_1d_ncw_cw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_1d_ncw_cw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -790,9 +790,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. Multiplier is set to 1
 which is a special case for most depthwise convolutions.
 """
-function depthwise_conv_1d_nwc_wc(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_1d_nwc_wc(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -813,9 +813,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function depthwise_conv_1d_nwc_wcm(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_1d_nwc_wcm(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -837,9 +837,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. Multiplier is set to 1
 which is a special case for most depthwise convolutions.
 """
-function depthwise_conv_2d_nchw_chw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_2d_nchw_chw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -861,9 +861,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. Multiplier is set to 1
 which is a special case for most depthwise convolutions.
 """
-function depthwise_conv_2d_nhwc_hwc(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_2d_nhwc_hwc(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -884,9 +884,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function depthwise_conv_2d_nhwc_hwc_q(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_2d_nhwc_hwc_q(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -907,9 +907,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function depthwise_conv_2d_nhwc_hwcm(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_2d_nhwc_hwcm(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -930,9 +930,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function depthwise_conv_2d_nhwc_hwcm_q(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_2d_nhwc_hwcm_q(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -954,9 +954,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. Multiplier is set to 1
 which is a special case for most depthwise convolutions.
 """
-function depthwise_conv_3d_ncdhw_cdhw(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_3d_ncdhw_cdhw(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -978,9 +978,9 @@ Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output. Multiplier is set to 1
 which is a special case for most depthwise convolutions.
 """
-function depthwise_conv_3d_ndhwc_dhwc(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_3d_ndhwc_dhwc(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1001,9 +1001,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function depthwise_conv_3d_ndhwc_dhwcm(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function depthwise_conv_3d_ndhwc_dhwcm(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1029,9 +1029,9 @@ passes can take that into account when lowering this code. For example,
 a `linalg.broadcast` + `linalg.div` sequence can be lowered to a
 `linalg.generic` with different affine maps for the two operands.
 """
-function div(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function div(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1055,9 +1055,9 @@ passes can take that into account when lowering this code. For example,
 a `linalg.broadcast` + `linalg.div` sequence can be lowered to a
 `linalg.generic` with different affine maps for the two operands.
 """
-function div_unsigned(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function div_unsigned(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1076,9 +1076,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function dot(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function dot(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1097,9 +1097,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function elemwise_binary(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, fun=nothing, cast=nothing, region::Region, location=Location())
+function elemwise_binary(inputs, outputs; result_tensors::Vector{MLIRType}, fun=nothing, cast=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1120,9 +1120,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function elemwise_unary(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, fun=nothing, cast=nothing, region::Region, location=Location())
+function elemwise_unary(inputs, outputs; result_tensors::Vector{MLIRType}, fun=nothing, cast=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1142,9 +1142,9 @@ end
 `exp`
 No numeric casting is performed on the input operand.
 """
-function exp(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function exp(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1164,9 +1164,9 @@ Works for arbitrary ranked output tensors since the operation performs scalar
 accesses only and is thus rank polymorphic. Numeric casting is performed on
 the value operand, promoting it to the same data type as the output.
 """
-function fill(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function fill(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1190,9 +1190,9 @@ and runs them in parallel. The seed operand and the indices of the data
 element seed the random number generation. The min and max operands limit
 the range of the generated random numbers.
 """
-function fill_rng_2d(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function fill_rng_2d(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1210,9 +1210,9 @@ end
 `floor`
 No numeric casting is performed on the input operand.
 """
-function floor(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function floor(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1325,31 +1325,32 @@ tensors and buffers operands and tensor results.
   -> (tensor<?x?xf32>)
 ```
 """
-function generic(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, indexing_maps, iterator_types, doc=nothing, library_call=nothing, region::Region, location=Location())
+function generic(inputs, outputs; result_tensors::Vector{MLIRType}, indexing_maps, iterator_types, doc=nothing, library_call=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("indexing_maps", indexing_maps), namedattribute("iterator_types", iterator_types), ]
     push!(attributes, operandsegmentsizes([length(inputs), length(outputs), ]))
     (doc != nothing) && push!(attributes, namedattribute("doc", doc))
     (library_call != nothing) && push!(attributes, namedattribute("library_call", library_call))
-    
-    create_operation(
+
+    op = create_operation(
         "linalg.generic", location;
         operands, owned_regions, successors, attributes,
         results=results,
         result_inference=false
     )
+    op
 end
 
 """
 `log`
 No numeric casting is performed on the input operand.
 """
-function log(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function log(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1390,9 +1391,9 @@ The example above will be printed as:
       outs(%init: tensor<64xf32>)
 ```
 """
-function map(inputs::Vector{Value}, init::Value; result::Vector{MLIRType}, mapper::Region, location=Location())
+function map(inputs, init; result::Vector{MLIRType}, mapper::Region, location=Location())
     results = MLIRType[result..., ]
-    operands = Value[inputs..., init, ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value(init), ]
     owned_regions = Region[mapper, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1410,9 +1411,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function matmul(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
+function matmul(inputs, outputs; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1432,9 +1433,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function matmul_transpose_a(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
+function matmul_transpose_a(inputs, outputs; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1454,9 +1455,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function matmul_transpose_b(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
+function matmul_transpose_b(inputs, outputs; result_tensors::Vector{MLIRType}, cast=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1476,9 +1477,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function matmul_unsigned(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function matmul_unsigned(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1497,9 +1498,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function matvec(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function matvec(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1523,9 +1524,9 @@ passes can take that into account when lowering this code. For example,
 a `linalg.broadcast` + `linalg.div` sequence can be lowered to a
 `linalg.generic` with different affine maps for the two operands.
 """
-function max(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function max(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1549,9 +1550,9 @@ Differences from linalg.matmul:
   \'0\' suffixes below, for instance the LHS matrix shape (M, K, M0, K0) reads
   as: MxK tiles, each of shape M0xK0.
 """
-function mmt4d(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function mmt4d(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1575,9 +1576,9 @@ passes can take that into account when lowering this code. For example,
 a `linalg.broadcast` + `linalg.mul` sequence can be lowered to a
 `linalg.generic` with different affine maps for the two operands.
 """
-function mul(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function mul(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1595,9 +1596,9 @@ end
 `negf`
 No numeric casting is performed on the input operand.
 """
-function negf(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function negf(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1616,9 +1617,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nchw_max(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nchw_max(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1643,9 +1644,9 @@ Layout:
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nchw_sum(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nchw_sum(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1666,9 +1667,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_ncw_max(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_ncw_max(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1693,9 +1694,9 @@ Layout:
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_ncw_sum(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_ncw_sum(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1716,9 +1717,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_ndhwc_max(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_ndhwc_max(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1739,9 +1740,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_ndhwc_min(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_ndhwc_min(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1762,9 +1763,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_ndhwc_sum(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_ndhwc_sum(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1785,9 +1786,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nhwc_max(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nhwc_max(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1808,9 +1809,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nhwc_max_unsigned(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nhwc_max_unsigned(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1831,9 +1832,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nhwc_min(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nhwc_min(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1854,9 +1855,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nhwc_min_unsigned(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nhwc_min_unsigned(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1881,9 +1882,9 @@ Layout:
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nhwc_sum(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nhwc_sum(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1904,9 +1905,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nwc_max(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nwc_max(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1927,9 +1928,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nwc_max_unsigned(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nwc_max_unsigned(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1950,9 +1951,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nwc_min(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nwc_min(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1973,9 +1974,9 @@ end
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nwc_min_unsigned(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nwc_min_unsigned(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2000,9 +2001,9 @@ Layout:
 Numeric casting is performed on the input operand, promoting it to the same
 data type as the accumulator/output.
 """
-function pooling_nwc_sum(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
+function pooling_nwc_sum(inputs, outputs; result_tensors::Vector{MLIRType}, strides=nothing, dilations=nothing, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2025,9 +2026,9 @@ them to the same data type as the accumulator/output. The quantized variant
 includes zero-point adjustments for the left and right operands of the
 matmul.
 """
-function quantized_batch_matmul(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function quantized_batch_matmul(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2048,9 +2049,9 @@ them to the same data type as the accumulator/output. The quantized variant
 includes zero-point adjustments for the left and right operands of the
 matmul.
 """
-function quantized_matmul(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function quantized_matmul(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2095,9 +2096,9 @@ The example above will be printed as:
       dimensions = [1]
 ```
 """
-function reduce(inputs::Vector{Value}, inits::Vector{Value}; result_0::Vector{MLIRType}, dimensions, combiner::Region, location=Location())
+function reduce(inputs, inits; result_0::Vector{MLIRType}, dimensions, combiner::Region, location=Location())
     results = MLIRType[result_0..., ]
-    operands = Value[inputs..., inits..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(inits)..., ]
     owned_regions = Region[combiner, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dimensions", dimensions), ]
@@ -2120,9 +2121,9 @@ passes can take that into account when lowering this code. For example,
 a `linalg.broadcast` + `linalg.sub` sequence can be lowered to a
 `linalg.generic` with different affine maps for the two operands.
 """
-function sub(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function sub(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2153,9 +2154,9 @@ operation only that produces a transposed \"view\".
       permutation = [1, 0]
 ```
 """
-function transpose(input::Value, init::Value; result::Vector{MLIRType}, permutation, region::Region, location=Location())
+function transpose(input, init; result::Vector{MLIRType}, permutation, region::Region, location=Location())
     results = MLIRType[result..., ]
-    operands = Value[input, init, ]
+    operands = API.MlirValue[get_value(input), get_value(init), ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("permutation", permutation), ]
@@ -2173,9 +2174,9 @@ end
 Numeric casting is performed on the operands to the inner multiply, promoting
 them to the same data type as the accumulator/output.
 """
-function vecmat(inputs::Vector{Value}, outputs::Vector{Value}; result_tensors::Vector{MLIRType}, region::Region, location=Location())
+function vecmat(inputs, outputs; result_tensors::Vector{MLIRType}, region::Region, location=Location())
     results = MLIRType[result_tensors..., ]
-    operands = Value[inputs..., outputs..., ]
+    operands = API.MlirValue[get_value.(inputs)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]

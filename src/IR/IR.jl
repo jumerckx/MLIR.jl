@@ -30,7 +30,8 @@ using .API:
     MlirValue,
     MlirIdentifier,
     MlirPassManager,
-    MlirOpPassManager
+    MlirOpPassManager,
+    MlirAffineMap
 
 function print_callback(str::MlirStringRef, userdata)
     data = unsafe_wrap(Array, Base.convert(Ptr{Cchar}, str.data), str.length; own=false)
@@ -192,7 +193,7 @@ MLIRType(A::Type{<:AbstractArray{T, N}}) where {T, N} = begin
     return IR.MLIRType(API.mlirMemRefTypeGet(
         IR.MLIRType(T),
         N,
-        Int[typemin(Int) for _ in 1:N],
+        Int[API.mlirShapedTypeGetDynamicSize() for _ in 1:N],
         IR.Attribute(API.mlirStridedLayoutAttrGet(
             IR.context().context,
             API.mlirShapedTypeGetDynamicSize(),
@@ -398,7 +399,7 @@ function Attribute(value::Int, type::MLIRType)
         API.mlirIntegerAttrGet(type, value)
     )
 end
-function Attribute(value::Bool, ::MLIRType=nothing)
+function Attribute(value::Bool)
     Attribute(
         API.mlirBoolAttrGet(context(), value)
     )
@@ -450,7 +451,6 @@ Base.convert(::Type{MlirAttribute}, named_attribute::NamedAttribute) =
     named_attribute.named_attribute
 
 ### Value
-
 struct Value
     value::MlirValue
 
@@ -461,6 +461,14 @@ struct Value
 end
 
 get_type(value) = MLIRType(API.mlirValueGetType(value))
+
+
+abstract type MLIRValueTrait end
+struct Convertible <: MLIRValueTrait end
+MLIRValueTrait(T) = error("Type $T is not convertible to MLIR Value since it does not implement MLIRValueTrait")
+get_value(x::Value) = x
+get_value(x::T) where T = get_value(MLIRValueTrait(T), x)
+get_value(::Convertible, x) = x.value
 
 Base.convert(::Type{MlirValue}, value::Value) = value.value
 Base.size(value::Value) = Base.size(get_type(value))
@@ -566,6 +574,11 @@ function create_operation(
     end
 end
 
+function (::Type{V})(op::Operation) where V<:Value
+    @assert num_results(op) == 1 "cannot get value from operation with $(num_results(op)) results"
+    return V(get_result(op))
+end
+
 Base.copy(operation::Operation) = Operation(API.mlirOperationClone(operation))
 
 num_regions(operation) = API.mlirOperationGetNumRegions(operation)
@@ -606,7 +619,11 @@ function set_attribute_by_name!(operation, name, attribute)
 end
 
 location(operation) = Location(API.mlirOperationGetLocation(operation))
-name(operation) = String(API.mlirOperationGetName(operation))
+function name(operation)
+    io = IOBuffer();
+    print_callback(API.mlirIdentifierStr(API.mlirOperationGetName(operation)), io)
+    String(take!(io))
+end
 block(operation) = Block(API.mlirOperationGetBlock(operation), false)
 parent_operation(operation) = Operation(API.mlirOperationGetParentOperation(operation), false)
 dialect(operation) = first(split(get_name(operation), '.')) |> Symbol
@@ -835,6 +852,24 @@ else
     struct TypeIDAllocator end
 
 end
+
+### AffineMap
+
+struct AffineMap
+    map::MlirAffineMap
+end
+
+function Base.show(io::IO, m::AffineMap)
+    c_print_callback = @cfunction(print_callback, Cvoid, (MlirStringRef, Any))
+    ref = Ref(io)
+    show(io, AffineMap)
+    print(io, "(#= ")
+    API.mlirAffineMapPrint(m, c_print_callback, ref)
+    print(io, " =#)")
+end
+
+Base.cconvert(::Type{API.MlirAffineMap}, m::AffineMap) = m
+Base.unsafe_convert(::Type{API.MlirAffineMap}, m::AffineMap) = m.map
 
 include("./Support.jl")
 include("./Pass.jl")

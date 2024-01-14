@@ -30,9 +30,9 @@ include("dialects/func.jl")
 
 # include("dialects/Gpu.jl")
 
-# include("dialects/Memref.jl")
+include("dialects/memref.jl")
 
-# include("dialects/Index.jl")
+include("dialects/index.jl")
 
 include("dialects/affine.jl")
 
