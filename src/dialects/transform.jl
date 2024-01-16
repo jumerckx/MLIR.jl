@@ -1,6 +1,6 @@
 module transform
 
-import ...IR: NamedAttribute, MLIRType, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: NamedAttribute, MLIRType, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -66,13 +66,13 @@ Remark: this op allows one to implement a simple \"try\" construct as follows:
 }
 ```
 """
-function alternatives(scope=nothing::Union{Nothing, Value}; results::Vector{MLIRType}, alternatives::Vector{Region}, location=Location())
+function alternatives(scope=nothing; results::Vector{MLIRType}, alternatives::Vector{Region}, location=Location())
     results = MLIRType[results..., ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[alternatives..., ]
     successors = Block[]
     attributes = NamedAttribute[]
-    (scope != nothing) && push!(operands, scope)
+    (scope != nothing) && push!(operands, get_value(scope))
     
     create_operation(
         "transform.alternatives", location;
@@ -94,13 +94,13 @@ the order within the handles.
 Fails silently if the length of the parameter payload does not match the length of
 the target payload. Does not consume the provided handles.
 """
-function annotate(target::Value, param=nothing::Union{Nothing, Value}; name, location=Location())
+function annotate(target, param=nothing; name, location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("name", name), ]
-    (param != nothing) && push!(operands, param)
+    (param != nothing) && push!(operands, get_value(param))
     
     create_operation(
         "transform.annotate", location;
@@ -118,7 +118,7 @@ an `apply_patterns` transform.
 """
 function apply_patterns_canonicalization(; location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -143,9 +143,9 @@ necessary. Note that this can lead to situations where a handle, that was
 previously mapped to multiple distinct (but equivalent) operations, is now
 mapped to the same operation multiple times.
 """
-function apply_cse(target::Value; location=Location())
+function apply_cse(target; location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -192,9 +192,9 @@ does not produce any handles.
 
 This transform fails silently if the dialect conversion was unsuccessful.
 """
-function apply_conversion_patterns(target::Value; legal_ops=nothing, illegal_ops=nothing, legal_dialects=nothing, illegal_dialects=nothing, partial_conversion=nothing, patterns::Region, default_type_converter_region::Vector{Region}, location=Location())
+function apply_conversion_patterns(target; legal_ops=nothing, illegal_ops=nothing, legal_dialects=nothing, illegal_dialects=nothing, partial_conversion=nothing, patterns::Region, default_type_converter_region::Vector{Region}, location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[patterns, default_type_converter_region..., ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -225,9 +225,9 @@ op folding and region simplification.
 This transform reads the target handle and modifies the payload. Note that
 this transform may silently remove payload ops from handles.
 """
-function apply_dce(target::Value; location=Location())
+function apply_dce(target; location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -252,9 +252,9 @@ to each loop of the loop nest, starting with the inner-most loop.
 
 This transform reads the target handle and modifies the payload.
 """
-function apply_licm(target::Value; location=Location())
+function apply_licm(target; location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -297,9 +297,9 @@ This transform also fails silently if the pattern application did not
 converge within the default number of iterations/rewrites of the greedy
 pattern rewrite driver.
 """
-function apply_patterns(target::Value; apply_cse=nothing, patterns::Region, location=Location())
+function apply_patterns(target; apply_cse=nothing, patterns::Region, location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[patterns, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -332,9 +332,9 @@ that they operate on, so the target op is guaranteed to still exist. The
 target handle is invalidated because a pass may arbitrarily modify the body
 of targeted ops.
 """
-function apply_registered_pass(target::Value; result::MLIRType, pass_name, options=nothing, location=Location())
+function apply_registered_pass(target; result::MLIRType, pass_name, options=nothing, location=Location())
     results = MLIRType[result, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("pass_name", pass_name), ]
@@ -361,7 +361,7 @@ enclosing \"apply_conversion_patterns\" op.
 """
 function apply_conversion_patterns_dialect_to_llvm(; dialect_name, location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dialect_name", dialect_name), ]
@@ -378,9 +378,9 @@ end
 `cast`
 
 """
-function cast(input::Value; output::MLIRType, location=Location())
+function cast(input; output::MLIRType, location=Location())
     results = MLIRType[output, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -453,9 +453,9 @@ the resulting handle is associated with an empty payload. The operation
 produces a definite failure if any of the applied matchers or actions
 produced a definite failure.
 """
-function foreach_match(root::Value; updated::MLIRType, restrict_root=nothing, matchers, actions, location=Location())
+function foreach_match(root; updated::MLIRType, restrict_root=nothing, matchers, actions, location=Location())
     results = MLIRType[updated, ]
-    operands = Value[root, ]
+    operands = API.MlirValue[get_value(root), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("matchers", matchers), namedattribute("actions", actions), ]
@@ -491,9 +491,9 @@ This op generates as many handles as the terminating YieldOp has operands.
 For each result, the payload ops of the corresponding YieldOp operand are
 merged and mapped to the same resulting handle.
 """
-function foreach(target::Value; results::Vector{MLIRType}, body::Region, location=Location())
+function foreach(target; results::Vector{MLIRType}, body::Region, location=Location())
     results = MLIRType[results..., ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[body, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -517,9 +517,9 @@ definitely fails.
 The return handle points to the consuming operations operations, which can
 be empty.
 """
-function get_consumers_of_result(target::Value; consumers::MLIRType, result_number, location=Location())
+function get_consumers_of_result(target; consumers::MLIRType, result_number, location=Location())
     results = MLIRType[consumers, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("result_number", result_number), ]
@@ -540,9 +540,9 @@ the targeted value.
 
 This transform fails silently if the targeted value is a block argument.
 """
-function get_defining_op(target::Value; result::MLIRType, location=Location())
+function get_defining_op(target; result::MLIRType, location=Location())
     results = MLIRType[result, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -582,9 +582,9 @@ If any of the given Payload IR ops has no such suitable parent, then:
   - if `allow_empty_results` is set, the result handle is empty
   - otherwise, the transformation produces a silenceable failure.
 """
-function get_parent_op(target::Value; parent::MLIRType, isolated_from_above=nothing, allow_empty_results=nothing, op_name=nothing, deduplicate=nothing, nth_parent=nothing, location=Location())
+function get_parent_op(target; parent::MLIRType, isolated_from_above=nothing, allow_empty_results=nothing, op_name=nothing, deduplicate=nothing, nth_parent=nothing, location=Location())
     results = MLIRType[parent, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -612,9 +612,9 @@ a block argument), the transform silently fails.
 The return handle points to only the subset of successfully produced
 computational operations, which can be empty.
 """
-function get_producer_of_operand(target::Value; producer::MLIRType, operand_number, location=Location())
+function get_producer_of_operand(target; producer::MLIRType, operand_number, location=Location())
     results = MLIRType[producer, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("operand_number", operand_number), ]
@@ -636,9 +636,9 @@ The handle defined by this Transform op corresponds to the OpResult with
 This transform fails silently if the targeted operation does not have enough
 results. It reads the target handle and produces the result handle.
 """
-function get_result(target::Value; result::MLIRType, result_number, location=Location())
+function get_result(target; result::MLIRType, result_number, location=Location())
     results = MLIRType[result, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("result_number", result_number), ]
@@ -659,9 +659,9 @@ type(s) of the value(s) associated with the operand handle.
 
 This transform never fails.
 """
-function get_type(value::Value; type_param::MLIRType, elemental=nothing, location=Location())
+function get_type(value; type_param::MLIRType, elemental=nothing, location=Location())
     results = MLIRType[type_param, ]
-    operands = Value[value, ]
+    operands = API.MlirValue[get_value(value), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -695,9 +695,9 @@ immediately regardless of the mode. The objects associated with the results
 of this operation are the same as those associated with the operands of the
 `transform.yield` in the referenced named sequence.
 """
-function include(operands::Vector{Value}; results::Vector{MLIRType}, target, failure_propagation_mode, location=Location())
+function include_(operands; results::Vector{MLIRType}, target, failure_propagation_mode, location=Location())
     results = MLIRType[results..., ]
-    operands = Value[operands..., ]
+    operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("target", target), namedattribute("failure_propagation_mode", failure_propagation_mode), ]
@@ -715,9 +715,9 @@ end
 
 Succeeds if the handle is not associated to any op.
 """
-function match_operation_empty(operand_handle::Value; location=Location())
+function match_operation_empty(operand_handle; location=Location())
     results = MLIRType[]
-    operands = Value[operand_handle, ]
+    operands = API.MlirValue[get_value(operand_handle), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -739,9 +739,9 @@ given operation names. Produces a silenceable failure otherwise.
 If more than one payload operation is associated with the operand handle,
 produces a definite failure.
 """
-function match_operation_name(operand_handle::Value; op_names, location=Location())
+function match_operation_name(operand_handle; op_names, location=Location())
     results = MLIRType[]
-    operands = Value[operand_handle, ]
+    operands = API.MlirValue[get_value(operand_handle), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("op_names", op_names), ]
@@ -762,9 +762,9 @@ parameters relate as specified by the predicate (greater than, less than,
 equal to, or their combinations). Comparison treats all values as signed.
 Produces a silenceable failure otherwise.
 """
-function match_param_cmpi(param::Value, reference::Value; predicate, location=Location())
+function match_param_cmpi(param, reference; predicate, location=Location())
     results = MLIRType[]
-    operands = Value[param, reference, ]
+    operands = API.MlirValue[get_value(param), get_value(reference), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("predicate", predicate), ]
@@ -789,9 +789,9 @@ first, then all Payload IR associated with the second handle and so on. If
 parameter more than once to the final list regardless of it coming from the
 same or different handles. Consumes the operands and produces a new handle.
 """
-function merge_handles(handles::Vector{Value}; result=nothing::Union{Nothing, MLIRType}, deduplicate=nothing, location=Location())
+function merge_handles(handles; result=nothing::Union{Nothing, MLIRType}, deduplicate=nothing, location=Location())
     results = MLIRType[]
-    operands = Value[handles..., ]
+    operands = API.MlirValue[get_value.(handles)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -835,7 +835,7 @@ but recursion is *not* allowed.
 """
 function named_sequence(; sym_name, function_type, sym_visibility=nothing, arg_attrs=nothing, res_attrs=nothing, body::Region, location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[body, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("sym_name", sym_name), namedattribute("function_type", function_type), ]
@@ -861,9 +861,9 @@ associated with the argument.
 
 Always succeeds.
 """
-function num_associations(handle::Value; num::MLIRType, location=Location())
+function num_associations(handle; num::MLIRType, location=Location())
     results = MLIRType[num, ]
-    operands = Value[handle, ]
+    operands = API.MlirValue[get_value(handle), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -886,7 +886,7 @@ accept the given kind of attribute as valid.
 """
 function param_constant(; param::MLIRType, value, location=Location())
     results = MLIRType[param, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("value", value), ]
@@ -908,13 +908,13 @@ specified, the top-level op is dumped.
 
 This op is useful for printf-style debugging.
 """
-function print(target=nothing::Union{Nothing, Value}; name=nothing, location=Location())
+function print(target=nothing; name=nothing, location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    (target != nothing) && push!(operands, target)
+    (target != nothing) && push!(operands, get_value(target))
     (name != nothing) && push!(attributes, namedattribute("name", name))
     
     create_operation(
@@ -950,9 +950,9 @@ MergeHandlesOp may be used to deduplicate the associated list of payload IR
 ops when necessary. Furthermore, a combination of ReplicateOp and
 MergeHandlesOp can be used to construct arbitrary lists with repetitions.
 """
-function replicate(pattern::Value, handles::Vector{Value}; replicated::Vector{MLIRType}, location=Location())
+function replicate(pattern, handles; replicated::Vector{MLIRType}, location=Location())
     results = MLIRType[replicated..., ]
-    operands = Value[pattern, handles..., ]
+    operands = API.MlirValue[get_value(pattern), get_value.(handles)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -978,9 +978,9 @@ The result payload ops are in the same relative order as the targeted ops.
 This transform op reads the `target` handle and produces the `result`
 handle. It reads the payload, but does not modify it.
 """
-function select(target::Value; result::MLIRType, op_name, location=Location())
+function select(target; result::MLIRType, op_name, location=Location())
     results = MLIRType[result, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("op_name", op_name), ]
@@ -1044,13 +1044,13 @@ The body of the sequence terminates with an implicit or explicit
 `transform.yield` op. The operands of the terminator are returned as the
 results of the sequence op.
 """
-function sequence(root=nothing::Union{Nothing, Value}; extra_bindings::Vector{Value}, results::Vector{MLIRType}, failure_propagation_mode, body::Region, location=Location())
+function sequence(root=nothing; extra_bindings, results::Vector{MLIRType}, failure_propagation_mode, body::Region, location=Location())
     results = MLIRType[results..., ]
-    operands = Value[extra_bindings..., ]
+    operands = API.MlirValue[get_value.(extra_bindings)..., ]
     owned_regions = Region[body, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("failure_propagation_mode", failure_propagation_mode), ]
-    (root != nothing) && push!(operands, root)
+    (root != nothing) && push!(operands, get_value(root))
     push!(attributes, operandsegmentsizes([(root==nothing) ? 0 : 1length(extra_bindings), ]))
     
     create_operation(
@@ -1085,9 +1085,9 @@ the remaining result handles are not mapped to any op. It also succeeds if
 `handle` is empty and `pass_through_empty_handle` is set to \"true\",
 regardless of `fail_on_payload_too_small`.
 """
-function split_handle(handle::Value; results::Vector{MLIRType}, pass_through_empty_handle=nothing, fail_on_payload_too_small=nothing, overflow_result=nothing, location=Location())
+function split_handle(handle; results::Vector{MLIRType}, pass_through_empty_handle=nothing, fail_on_payload_too_small=nothing, overflow_result=nothing, location=Location())
     results = MLIRType[results..., ]
-    operands = Value[handle, ]
+    operands = API.MlirValue[get_value(handle), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1116,9 +1116,9 @@ op.
 
 This transform reads the target handle.
 """
-function verify(target::Value; location=Location())
+function verify(target; location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1138,9 +1138,9 @@ This terminator operation yields operation handles from regions of the
 transform IR ops back to the containing op. It is not itself associated with
 any transformation on the payload IR and is used for flow purposes only.
 """
-function yield(operands::Vector{Value}; location=Location())
+function yield(operands; location=Location())
     results = MLIRType[]
-    operands = Value[operands..., ]
+    operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1161,7 +1161,7 @@ Collects patterns that promote inputs to outputs and remove unused inputs of
 """
 function apply_patterns_linalg_erase_unnecessary_inputs(; location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1182,7 +1182,7 @@ linalg ops on tensors via reassociative reshape ops.
 """
 function apply_patterns_linalg_fold_unit_extent_dims_via_reshapes(; location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1203,7 +1203,7 @@ linalg ops on tensors via rank-reducing slices.
 """
 function apply_patterns_linalg_fold_unit_extent_dims_via_slices(; location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1223,7 +1223,7 @@ Collects canonicalization patterns relevant to apply after tiling patterns.
 """
 function apply_patterns_linalg_tiling_canonicalization(; location=Location())
     results = MLIRType[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1302,9 +1302,9 @@ op are bufferized to a new memory allocation, but not the op itself.
 This operation consumes the `target` handle and produces the
 `allocated_buffer` and `new_ops` handles. It always succeeds.
 """
-function structured_bufferize_to_allocation(target::Value; allocated_buffer::MLIRType, new_ops::MLIRType, memory_space=nothing, memcpy_op=nothing, alloc_op=nothing, bufferize_destination_only=nothing, emit_dealloc=nothing, location=Location())
+function structured_bufferize_to_allocation(target; allocated_buffer::MLIRType, new_ops::MLIRType, memory_space=nothing, memcpy_op=nothing, alloc_op=nothing, bufferize_destination_only=nothing, emit_dealloc=nothing, location=Location())
     results = MLIRType[allocated_buffer, new_ops, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1370,9 +1370,9 @@ Returns two handles:
 Returns a definite failure if target is not isolated from above.
 Returns a silenceable failure if the pattern application failed.
 """
-function structured_convert_conv2d_to_img2col(target::Value; img2col_tensor::MLIRType, transformed::MLIRType, location=Location())
+function structured_convert_conv2d_to_img2col(target; img2col_tensor::MLIRType, transformed::MLIRType, location=Location())
     results = MLIRType[img2col_tensor, transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1390,9 +1390,9 @@ end
 
 TODO
 """
-function structured_decompose_interface(target::Value; transformed::MLIRType, location=Location())
+function structured_decompose_interface(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1420,9 +1420,9 @@ properly, the transform succeeds. Otherwise the transform silently fails.
 The return handle points to only the subset of successfully produced
 computational operations, which can be empty.
 """
-function structured_decompose(target::Value; transformed::MLIRType, location=Location())
+function structured_decompose(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1489,9 +1489,9 @@ bufferize without an allocation (in the absence of other conflicts).
 This transform reads the target handle and modifies the payload. It does
 not produce any handle.
 """
-function structured_eliminate_empty_tensors(target::Value; location=Location())
+function structured_eliminate_empty_tensors(target; location=Location())
     results = MLIRType[]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1539,9 +1539,9 @@ op are rejected by this operation.
 This operation consumes the producer handle.
 This operation only reads the containing op handle.
 """
-function structured_fuse_into_containing_op(producer_op::Value, containing_op::Value; fused_op::MLIRType, new_containing_op::MLIRType, location=Location())
+function structured_fuse_into_containing_op(producer_op, containing_op; fused_op::MLIRType, new_containing_op::MLIRType, location=Location())
     results = MLIRType[fused_op, new_containing_op, ]
-    operands = Value[producer_op, containing_op, ]
+    operands = API.MlirValue[get_value(producer_op), get_value(containing_op), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1560,9 +1560,9 @@ end
 Tiles the operations pointed to by the target handle and fuses their
 producers greedily using the options provided as attributes.
 """
-function structured_fuse(target::Value; transformed::MLIRType, loops::Vector{MLIRType}, tile_sizes=nothing, tile_interchange=nothing, location=Location())
+function structured_fuse(target; transformed::MLIRType, loops::Vector{MLIRType}, tile_sizes=nothing, tile_interchange=nothing, location=Location())
     results = MLIRType[transformed, loops..., ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1592,9 +1592,9 @@ The return handle points to only the subset of successfully produced
 equivalent generic operations, which can be empty or contain the original
 ops if they were already in generic form.
 """
-function structured_generalize(target::Value; transformed::MLIRType, location=Location())
+function structured_generalize(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1625,9 +1625,9 @@ If any non-tensor.pad is passed, the transform emits a silenceable failure.
 The return handle points to only the subset of successfully created packing
 loop nests, which can be empty.
 """
-function structured_hoist_pad_build_packing_loop_nest(target::Value, loop::Value; packing_loop::MLIRType, transpose=nothing, location=Location())
+function structured_hoist_pad_build_packing_loop_nest(target, loop; packing_loop::MLIRType, transpose=nothing, location=Location())
     results = MLIRType[packing_loop, ]
-    operands = Value[target, loop, ]
+    operands = API.MlirValue[get_value(target), get_value(loop), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1662,9 +1662,9 @@ transform succeeds. Otherwise the transform silently fails.
 The return handle points to only the subset of successfully hoisted
 tensor.pad operations, which can be empty.
 """
-function structured_hoist_pad(target::Value; transformed::MLIRType, num_loops, transpose=nothing, location=Location())
+function structured_hoist_pad(target; transformed::MLIRType, num_loops, transpose=nothing, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("num_loops", num_loops), ]
@@ -1698,9 +1698,9 @@ TODO: obsolete and should be retired.
 The operation always succeeds and returns a handle to the transformed
 function op.
 """
-function structured_hoist_redundant_vector_transfers(target::Value; transformed::MLIRType, location=Location())
+function structured_hoist_redundant_vector_transfers(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1728,9 +1728,9 @@ op (i.e. do not create an additional linalg.copy op).
 The operation always succeeds and returns a handle to the relevant
 linalg.copy op.
 """
-function structured_insert_slice_to_copy(target::Value; transformed::MLIRType, location=Location())
+function structured_insert_slice_to_copy(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1759,9 +1759,9 @@ If any interchange fails, the transform definitely fails.
 The return handle points to only the subset of successfully produced
 interchanged operations, which can be empty.
 """
-function structured_interchange(target::Value; transformed::MLIRType, iterator_interchange=nothing, location=Location())
+function structured_interchange(target; transformed::MLIRType, iterator_interchange=nothing, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1789,9 +1789,9 @@ If all the operations referred to by the `target` are rewritten, the
 transform succeeds.
 Return handles to the newly produced pad, expand_shape and transpose ops.
 """
-function structured_lower_pack(target::Value; pad_op::MLIRType, expand_shape_op::MLIRType, transpose_op::MLIRType, location=Location())
+function structured_lower_pack(target; pad_op::MLIRType, expand_shape_op::MLIRType, transpose_op::MLIRType, location=Location())
     results = MLIRType[pad_op, expand_shape_op, transpose_op, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1819,9 +1819,9 @@ If all the operations referred to by the `target` are rewritten, the
 transform succeeds.
 Return handles to the newly produced empty, transpose, collapse_shape and extract_slice ops.
 """
-function structured_lower_unpack(target::Value; empty_op::MLIRType, transpose_op::MLIRType, collapse_shape_op::MLIRType, extract_slice_op::MLIRType, location=Location())
+function structured_lower_unpack(target; empty_op::MLIRType, transpose_op::MLIRType, collapse_shape_op::MLIRType, extract_slice_op::MLIRType, location=Location())
     results = MLIRType[empty_op, transpose_op, collapse_shape_op, extract_slice_op, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1857,9 +1857,9 @@ linalg.copy / tensor.pad) among the targeted op. Otherwise, the operation
 always succeeds and returns a handle to the relevant tiled linalg.copy /
 tensor.pad op and the enclosing scf.forall op.
 """
-function structured_gpu_map_copy_to_threads(target::Value; forall_op::MLIRType, tiled_op::MLIRType, total_num_threads, desired_bit_alignment, location=Location())
+function structured_gpu_map_copy_to_threads(target; forall_op::MLIRType, tiled_op::MLIRType, total_num_threads, desired_bit_alignment, location=Location())
     results = MLIRType[forall_op, tiled_op, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("total_num_threads", total_num_threads), namedattribute("desired_bit_alignment", desired_bit_alignment), ]
@@ -1907,9 +1907,9 @@ Otherwise it succeeds.
 This operation does not consume the target handle and produces new handles:
 it is a navigation op.
 """
-function structured_match(target::Value; results::MLIRType, ops=nothing, interface=nothing, op_attrs=nothing, filter_result_type=nothing, filter_operand_types=nothing, location=Location())
+function structured_match(target; results::MLIRType, ops=nothing, interface=nothing, op_attrs=nothing, filter_result_type=nothing, filter_operand_types=nothing, location=Location())
     results = MLIRType[results, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1983,9 +1983,9 @@ structured.split %common after %splitr { dimension = 0 }
 // ...
 ```
 """
-function structured_multitile_sizes(target::Value; low_size::MLIRType, high_size::MLIRType, split_point::MLIRType, dimension, target_size, divisor=nothing, location=Location())
+function structured_multitile_sizes(target; low_size::MLIRType, high_size::MLIRType, split_point::MLIRType, dimension, target_size, divisor=nothing, location=Location())
     results = MLIRType[low_size, high_size, split_point, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dimension", dimension), namedattribute("target_size", target_size), ]
@@ -2056,9 +2056,9 @@ This operation ignores non-Linalg ops and drops them in the return.
 It returns the list of packed Linalg ops or the original op when all available
 packing strategies failed to apply.
 """
-function structured_pack_greedily(target::Value, matmul_packed_sizes::Vector{Value}; packed_op::MLIRType, static_matmul_packed_sizes=nothing, matmul_padded_sizes_next_multiple_of=nothing, matmul_inner_dims_order=nothing, location=Location())
+function structured_pack_greedily(target, matmul_packed_sizes; packed_op::MLIRType, static_matmul_packed_sizes=nothing, matmul_padded_sizes_next_multiple_of=nothing, matmul_inner_dims_order=nothing, location=Location())
     results = MLIRType[packed_op, ]
-    operands = Value[target, matmul_packed_sizes..., ]
+    operands = API.MlirValue[get_value(target), get_value.(matmul_packed_sizes)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2135,9 +2135,9 @@ reason.
 
 The returned handle point to the packed LinalgOp.
 """
-function structured_pack(target::Value, packed_sizes::Vector{Value}; packed_op::MLIRType, static_packed_sizes=nothing, location=Location())
+function structured_pack(target, packed_sizes; packed_op::MLIRType, static_packed_sizes=nothing, location=Location())
     results = MLIRType[packed_op, ]
-    operands = Value[target, packed_sizes..., ]
+    operands = API.MlirValue[get_value(target), get_value.(packed_sizes)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2189,9 +2189,9 @@ the transformed `tensor.pack` and one to the transformed `tensor.unpack`.
 The last handle for `tensor.unpack` is empty if `target_pack_or_unpack_op`
 was not itself a `tensor.unpack`.
 """
-function structured_pack_transpose(target_pack_or_un_pack_op::Value, target_linalg_op::Value; packed_op::MLIRType, pack_op::MLIRType, un_pack_op::MLIRType, outer_perm=nothing, inner_perm=nothing, location=Location())
+function structured_pack_transpose(target_pack_or_un_pack_op, target_linalg_op; packed_op::MLIRType, pack_op::MLIRType, un_pack_op::MLIRType, outer_perm=nothing, inner_perm=nothing, location=Location())
     results = MLIRType[packed_op, pack_op, un_pack_op, ]
-    operands = Value[target_pack_or_un_pack_op, target_linalg_op, ]
+    operands = API.MlirValue[get_value(target_pack_or_un_pack_op), get_value(target_linalg_op), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2232,9 +2232,9 @@ properly, the transform succeeds. Otherwise the transform silently fails.
 The return handle points to only the subset of successfully produced
 padded operations, which can be empty.
 """
-function structured_pad(target::Value; padded::MLIRType, pad::MLIRType, copy::MLIRType, padding_values=nothing, padding_dimensions=nothing, pad_to_multiple_of=nothing, pack_paddings=nothing, transpose_paddings=nothing, copy_back_op=nothing, location=Location())
+function structured_pad(target; padded::MLIRType, pad::MLIRType, copy::MLIRType, padding_values=nothing, padding_dimensions=nothing, pad_to_multiple_of=nothing, pack_paddings=nothing, transpose_paddings=nothing, copy_back_op=nothing, location=Location())
     results = MLIRType[padded, pad, copy, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2272,9 +2272,9 @@ properly, the transform succeeds.
 When successful, the return handle points to the \$target operation that
 was modified inplace.
 """
-function structured_promote(target::Value; transformed::MLIRType, operands_to_promote=nothing, use_full_tile_buffers=nothing, use_full_tiles_by_default=nothing, use_alloca=nothing, memory_space=nothing, mapping=nothing, alignment=nothing, location=Location())
+function structured_promote(target; transformed::MLIRType, operands_to_promote=nothing, use_full_tile_buffers=nothing, use_full_tiles_by_default=nothing, use_alloca=nothing, memory_space=nothing, mapping=nothing, alignment=nothing, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2307,9 +2307,9 @@ This op is for debugging/experiments only.
 
 This operation consumes the `target` handle.
 """
-function structured_replace(target::Value; replacement::MLIRType, bodyRegion::Region, location=Location())
+function structured_replace(target; replacement::MLIRType, bodyRegion::Region, location=Location())
     results = MLIRType[replacement, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[bodyRegion, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2345,9 +2345,9 @@ The return handle points to a subset of successfully produced operations:
   - `tensor.from_elements` case, the returned handle points to the last
     `tensor.insert`.
 """
-function structured_rewrite_in_destination_passing_style(target::Value; transformed::MLIRType, location=Location())
+function structured_rewrite_in_destination_passing_style(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2384,9 +2384,9 @@ dimensions after multiple transformations have been applied).
 Loops can always be recovered by navigating from the tiled operations if
 needed.
 """
-function structured_scalarize(target::Value; result::MLIRType, location=Location())
+function structured_scalarize(target; result::MLIRType, location=Location())
     results = MLIRType[result, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2414,9 +2414,9 @@ operations, which can be empty or contain the original ops if they were already
 in named form. The supported specialization to named Linalg operations are:
 - linalg.copy of any rank.
 """
-function structured_specialize(target::Value; transformed::MLIRType, location=Location())
+function structured_specialize(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2450,13 +2450,13 @@ of the structured op after splitting, in the same order as the target
 operand, with the first handle corresponding to the part with lower
 iteration space indices.
 """
-function structured_split(target::Value, dynamic_split_point=nothing::Union{Nothing, Value}; first::MLIRType, second::MLIRType, dimension, static_split_point, location=Location())
+function structured_split(target, dynamic_split_point=nothing; first::MLIRType, second::MLIRType, dimension, static_split_point, location=Location())
     results = MLIRType[first, second, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dimension", dimension), namedattribute("static_split_point", static_split_point), ]
-    (dynamic_split_point != nothing) && push!(operands, dynamic_split_point)
+    (dynamic_split_point != nothing) && push!(operands, get_value(dynamic_split_point))
     
     create_operation(
         "transform.structured.split", location;
@@ -2602,9 +2602,9 @@ Is transformed to:
  return %4 : tensor<16x32xf32>
 ```
 """
-function structured_split_reduction(target::Value; init_or_alloc_op::MLIRType, fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, split_factor=nothing, insert_split_dimension=nothing, inner_parallel=nothing, use_scaling_algorithm=nothing, use_alloc=nothing, location=Location())
+function structured_split_reduction(target; init_or_alloc_op::MLIRType, fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, split_factor=nothing, insert_split_dimension=nothing, inner_parallel=nothing, use_scaling_algorithm=nothing, use_alloc=nothing, location=Location())
     results = MLIRType[init_or_alloc_op, fill_op, split_linalg_op, combining_linalg_op, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2692,9 +2692,9 @@ is transformed into:
   } -> tensor<?xf32>
 ```
 """
-function structured_tile_reduction_using_for(target::Value; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, for_op::MLIRType, tile_sizes=nothing, location=Location())
+function structured_tile_reduction_using_for(target; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, for_op::MLIRType, tile_sizes=nothing, location=Location())
     results = MLIRType[fill_op, split_linalg_op, combining_linalg_op, for_op, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2775,9 +2775,9 @@ is transformed into:
   } -> tensor<?xf32>
 ```
 """
-function structured_tile_reduction_using_forall(target::Value; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, forall_op::MLIRType, num_threads=nothing, tile_sizes=nothing, mapping=nothing, location=Location())
+function structured_tile_reduction_using_forall(target; fill_op::MLIRType, split_linalg_op::MLIRType, combining_linalg_op::MLIRType, forall_op::MLIRType, num_threads=nothing, tile_sizes=nothing, mapping=nothing, location=Location())
     results = MLIRType[fill_op, split_linalg_op, combining_linalg_op, forall_op, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2832,9 +2832,9 @@ that of the list associated with the `target` handle.
 If the internal implementation of tiling for any of the operations fails,
 produces a definite failure.
 """
-function structured_tile_using_for(target::Value, dynamic_sizes::Vector{Value}; tiled_linalg_op::MLIRType, loops::Vector{MLIRType}, static_sizes=nothing, interchange=nothing, scalable_sizes=nothing, location=Location())
+function structured_tile_using_for(target, dynamic_sizes; tiled_linalg_op::MLIRType, loops::Vector{MLIRType}, static_sizes=nothing, interchange=nothing, scalable_sizes=nothing, location=Location())
     results = MLIRType[tiled_linalg_op, loops..., ]
-    operands = Value[target, dynamic_sizes..., ]
+    operands = API.MlirValue[get_value(target), get_value.(dynamic_sizes)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2911,14 +2911,14 @@ These two returned handles point to:
    : (!transform.any_op, !transform.any_op) -> (!transform.any_op, !transform.any_op)
 ```
 """
-function structured_tile_using_forall(target::Value, num_threads::Vector{Value}, tile_sizes::Vector{Value}, packed_num_threads=nothing::Union{Nothing, Value}; packed_tile_sizes=nothing::Union{Nothing, Value}, tiled_op::MLIRType, forall_op::MLIRType, static_num_threads=nothing, static_tile_sizes=nothing, mapping=nothing, location=Location())
+function structured_tile_using_forall(target, num_threads, tile_sizes, packed_num_threads=nothing; packed_tile_sizes=nothing, tiled_op::MLIRType, forall_op::MLIRType, static_num_threads=nothing, static_tile_sizes=nothing, mapping=nothing, location=Location())
     results = MLIRType[tiled_op, forall_op, ]
-    operands = Value[target, num_threads..., tile_sizes..., ]
+    operands = API.MlirValue[get_value(target), get_value.(num_threads)..., get_value.(tile_sizes)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    (packed_num_threads != nothing) && push!(operands, packed_num_threads)
-    (packed_tile_sizes != nothing) && push!(operands, packed_tile_sizes)
+    (packed_num_threads != nothing) && push!(operands, get_value(packed_num_threads))
+    (packed_tile_sizes != nothing) && push!(operands, get_value(packed_tile_sizes))
     push!(attributes, operandsegmentsizes([1, length(num_threads), length(tile_sizes), (packed_num_threads==nothing) ? 0 : 1(packed_tile_sizes==nothing) ? 0 : 1]))
     (static_num_threads != nothing) && push!(attributes, namedattribute("static_num_threads", static_num_threads))
     (static_tile_sizes != nothing) && push!(attributes, namedattribute("static_tile_sizes", static_tile_sizes))
@@ -2952,9 +2952,9 @@ Returns one handle:
 Returns a definite failure if target is not isolated from above.
 Returns a silenceable failure if the pattern application failed.
 """
-function structured_transpose_conv2d(target::Value; transformed::MLIRType, location=Location())
+function structured_transpose_conv2d(target; transformed::MLIRType, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -3005,9 +3005,9 @@ reason.
 The operation always returns the handle to the target op that is expected
 to be isolated from above.
 """
-function structured_vectorize_children_and_apply_patterns(target::Value; transformed::MLIRType, vectorize_padding=nothing, vectorize_nd_extract=nothing, flatten_1d_depthwise_conv=nothing, disable_multi_reduction_to_contract_patterns=nothing, disable_transfer_permutation_map_lowering_patterns=nothing, location=Location())
+function structured_vectorize_children_and_apply_patterns(target; transformed::MLIRType, vectorize_padding=nothing, vectorize_nd_extract=nothing, flatten_1d_depthwise_conv=nothing, disable_multi_reduction_to_contract_patterns=nothing, disable_transfer_permutation_map_lowering_patterns=nothing, location=Location())
     results = MLIRType[transformed, ]
-    operands = Value[target, ]
+    operands = API.MlirValue[get_value(target), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -3060,9 +3060,9 @@ not a Linalg op or fails to vectorize. It produces a definite failure if
 the dynamic vector sizes (SSA values) do not satisfy the constraints
 mentioned above.
 """
-function structured_vectorize(target::Value, vector_sizes::Vector{Value}; vectorize_nd_extract=nothing, scalable_sizes=nothing, static_vector_sizes=nothing, location=Location())
+function structured_vectorize(target, vector_sizes; vectorize_nd_extract=nothing, scalable_sizes=nothing, static_vector_sizes=nothing, location=Location())
     results = MLIRType[]
-    operands = Value[target, vector_sizes..., ]
+    operands = API.MlirValue[get_value(target), get_value.(vector_sizes)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -3077,5 +3077,6 @@ function structured_vectorize(target::Value, vector_sizes::Vector{Value}; vector
         result_inference=false
     )
 end
+
 
 end # transform
