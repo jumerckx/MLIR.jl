@@ -24,7 +24,7 @@ module {
 }
 ```
 """
-function module_(; sym_name=nothing, sym_visibility=nothing, bodyRegion::Region, location=Location(), additional_attributes=Attribute[])
+function module_(; sym_name=nothing, sym_visibility=nothing, bodyRegion::Region, location=Location(), additional_attributes=NamedAttribute[])
     results = MLIRType[]
     operands = API.MlirValue[]
     owned_regions = Region[bodyRegion, ]
