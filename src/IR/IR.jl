@@ -465,10 +465,12 @@ get_type(value) = MLIRType(API.mlirValueGetType(value))
 
 abstract type MLIRValueTrait end
 struct Convertible <: MLIRValueTrait end
-MLIRValueTrait(T) = error("Type $T is not convertible to MLIR Value since it does not implement MLIRValueTrait")
+struct NonConvertible <: MLIRValueTrait end
+MLIRValueTrait(T) = NonConvertible()
 get_value(x::Value) = x
 get_value(x::T) where T = get_value(MLIRValueTrait(T), x)
 get_value(::Convertible, x) = x.value
+get_value(::NonConvertible, x::T) where T = error("Type $T does not have the Convertible MLIRValueTrait")
 
 Base.convert(::Type{MlirValue}, value::Value) = value.value
 Base.size(value::Value) = Base.size(get_type(value))
