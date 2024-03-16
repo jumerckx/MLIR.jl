@@ -43,8 +43,8 @@ else
     using LLVM_full_jll
     LLVM_full_jll
 end
-LLVM_DIR = joinpath(LLVM.artifact_dir, "lib", "cmake", "llvm")
-MLIR_DIR = joinpath(LLVM.artifact_dir, "lib", "cmake", "mlir")
+LLVM_DIR = "/home/jumerckx/masterthesis/llvm-project/llvm/install/relwithdebinfo/lib/cmake/llvm"
+MLIR_DIR = "/home/jumerckx/masterthesis/llvm-project/llvm/install/relwithdebinfo/lib/cmake/mlir"
 
 # build and install
 @info "Building" source_dir scratch_dir build_dir LLVM_DIR MLIR_DIR

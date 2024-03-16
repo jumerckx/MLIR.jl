@@ -16,7 +16,6 @@ function mlir_dialects(version::VersionNumber)
             ("amx", "AMX.jl", ["AMX/AMX.td"]),
             ("affine", "Affine.jl", ["Affine/IR/AffineOps.td"]),
             ("arm_neon", "ArmNeon.jl", ["ArmNeon/ArmNeon.td"]),
-            ("arm_sve", "ArmSVE.jl", ["ArmSVE/ArmSVE.td"]),
             ("async", "Async.jl", ["Async/IR/AsyncOps.td"]),
             ("bufferization", "Bufferization.jl", ["Bufferization/IR/BufferizationOps.td"]),
             ("complex", "Complex.jl", ["Complex/IR/ComplexOps.td"]),
@@ -40,6 +39,12 @@ function mlir_dialects(version::VersionNumber)
         ])
     end
 
+    if v"14" <= version < v"18"
+        append!(dialects, [
+            ("arm_sve", "ArmSVE.jl", ["ArmSVE/ArmSVE.td"]), # moved to IR subfolder in v18
+        ])
+    end
+
     if v"14" <= version < v"15"
         append!(dialects, [
             ("gpu", "GPU.jl", ["GPU/GPUOps.td"]), # moved to IR subfolder in v15
@@ -59,11 +64,16 @@ function mlir_dialects(version::VersionNumber)
         append!(dialects, [
             ("gpu", "GPU.jl", ["GPU/IR/GPUOps.td"]),
             ("scf", "SCF.jl", ["SCF/IR/SCFOps.td"]),
-            ("amdgpu", "AMDGPU.jl", ["AMDGPU/AMDGPU.td"]),
             ("cf", "ControlFlow.jl", ["ControlFlow/IR/ControlFlowOps.td"]),
             ("func", "Func.jl", ["Func/IR/FuncOps.td"]),
             ("ml_program", "MLProgram.jl", ["MLProgram/IR/MLProgramOps.td"]),
             ("nvgpu", "NVGPU.jl", ["NVGPU/IR/NVGPU.td"]),
+        ])
+    end
+
+    if v"15" <= version < v"18"
+        append!(dialects, [
+            ("amdgpu", "AMDGPU.jl", ["AMDGPU/AMDGPU.td"]),
         ])
     end
 
@@ -103,9 +113,9 @@ function mlir_dialects(version::VersionNumber)
 
     if version >= v"17"
         append!(dialects, [
-            ("arm_sme", "ArmSME.jl", ["ArmSME/IR/ArmSME.td"]),
-            ("irdl", "IRDL.jl", ["IRDL/IR/IRDLOps.td"]),
-            ("ub", "UB.jl", ["UB/IR/UBOps.td"]),
+            # ("arm_sme", "ArmSME.jl", ["ArmSME/IR/ArmSME.td"]),
+            # ("irdl", "IRDL.jl", ["IRDL/IR/IRDLOps.td"]),
+            # ("ub", "UB.jl", ["UB/IR/UBOps.td"]),
             ("transform", "Transform.jl", [
                 "Transform/IR/TransformOps.td",
                 "Affine/TransformOps/AffineTransformOps.td",
@@ -125,6 +135,8 @@ function mlir_dialects(version::VersionNumber)
     if version >= v"18"
         append!(dialects, [
             ("mesh", "Mesh.jl", ["Mesh/IR/MeshOps.td"]),
+            ("arm_sve", "ArmSVE.jl", ["ArmSVE/IR/ArmSVE.td"]),
+            ("amdgpu", "AMDGPU.jl", ["AMDGPU/IR/AMDGPU.td"]),
         ])
     end
 
@@ -133,7 +145,7 @@ end
 
 function rewrite!(dag::ExprDAG) end
 
-julia_llvm = Dict([v"1.9" => v"14.0.5+3", v"1.10" => v"15.0.7+10", v"1.11" => v"16.0.6+2"])
+julia_llvm = Dict([v"1.11" => v"18"])
 options = load_options(joinpath(@__DIR__, "wrap.toml"))
 
 @add_def off_t
@@ -143,20 +155,8 @@ for (julia_version, llvm_version) in julia_llvm
     println("Generating... julia version: $julia_version, llvm version: $llvm_version")
 
     temp_prefix() do prefix
-        platform = Pkg.BinaryPlatforms.HostPlatform()
-        platform["llvm_version"] = string(llvm_version.major)
-        platform["julia_version"] = string(julia_version)
-
-        # Note: 1.10
-        dependencies = PkgSpec[
-            PkgSpec(; name="LLVM_full_jll", version=llvm_version),
-            PkgSpec(; name="mlir_jl_tblgen_jll")
-        ]
-
-        artifact_paths = setup_dependencies(prefix, dependencies, platform; verbose=true)
-
-        mlir_jl_tblgen = joinpath(destdir(prefix, platform), "bin", "mlir-jl-tblgen")
-        include_dir = joinpath(destdir(prefix, platform), "include")
+        mlir_jl_tblgen = "/home/jumerckx/.julia/scratchspaces/bfde9dd4-8f40-4a1e-be09-1475335e1c92/build/bin/mlir-jl-tblgen"
+        include_dir = "/home/jumerckx/masterthesis/llvm-project/llvm/install/relwithdebinfo/include"
 
         # generate MLIR API bindings
         mkpath(joinpath(@__DIR__, "..", "src", "API", string(llvm_version.major)))
