@@ -1,6 +1,6 @@
 module arm_neon
 
-import ...IR: IR, NamedAttribute, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: IR, NamedAttribute, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -16,9 +16,9 @@ vector to the destination SIMD&FP register.
 Source:
 https://developer.arm.com/architectures/instruction-sets/simd-isas/neon/intrinsics
 """
-function intr_smull(a::Value, b::Value; res::IR.Type, location=Location())
+function intr_smull(a, b; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[a, b, ]
+    operands = API.MlirValue[get_value(a), get_value(b), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -43,9 +43,9 @@ corresponding entry of `a`:
 res[i] := a[i] + dot_product(b[i, ...], c[i, ...])
 ```
 """
-function _2d_sdot(a::Value, b::Value, c::Value; res::IR.Type, location=Location())
+function _2d_sdot(a, b, c; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[a, b, c, ]
+    operands = API.MlirValue[get_value(a), get_value(b), get_value(c), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -68,9 +68,9 @@ where vector operands are partitioned into groups of four elements.
 Source:
 https://developer.arm.com/architectures/instruction-sets/simd-isas/neon/intrinsics
 """
-function intr_sdot(a::Value, b::Value, c::Value; res::IR.Type, location=Location())
+function intr_sdot(a, b, c; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[a, b, c, ]
+    operands = API.MlirValue[get_value(a), get_value(b), get_value(c), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -98,9 +98,9 @@ equivalent to performing an 8-way dot product per destination element.
 Source:
 https://developer.arm.com/architectures/instruction-sets/intrinsics/#f:@navigationhierarchiessimdisa=[Neon]&q=smmla
 """
-function intr_smmla(acc::Value, src1::Value, src2::Value; res::IR.Type, location=Location())
+function intr_smmla(acc, src1, src2; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[acc, src1, src2, ]
+    operands = API.MlirValue[get_value(acc), get_value(src1), get_value(src2), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -129,9 +129,9 @@ per destination element.
 Source:
 https://developer.arm.com/architectures/instruction-sets/intrinsics/#f:@navigationhierarchiessimdisa=[Neon]&q=ummla
 """
-function intr_ummla(acc::Value, src1::Value, src2::Value; res::IR.Type, location=Location())
+function intr_ummla(acc, src1, src2; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[acc, src1, src2, ]
+    operands = API.MlirValue[get_value(acc), get_value(src1), get_value(src2), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -161,9 +161,9 @@ destination vector. This is equivalent to performing an 8-way dot product
 Source:
 https://developer.arm.com/architectures/instruction-sets/intrinsics/#f:@navigationhierarchiessimdisa=[Neon]&q=usmmla
 """
-function intr_usmmla(acc::Value, src1::Value, src2::Value; res::IR.Type, location=Location())
+function intr_usmmla(acc, src1, src2; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[acc, src1, src2, ]
+    operands = API.MlirValue[get_value(acc), get_value(src1), get_value(src2), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]

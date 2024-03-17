@@ -1,6 +1,6 @@
 module mesh
 
-import ...IR: IR, NamedAttribute, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: IR, NamedAttribute, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -41,9 +41,9 @@ axis 1
 +-------------+
 ```
 """
-function all_gather(input::Value; result::IR.Type, mesh, mesh_axes=nothing, gather_axis, location=Location())
+function all_gather(input; result::IR.Type, mesh, mesh_axes=nothing, gather_axis, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("gather_axis", gather_axis), ]
@@ -74,9 +74,9 @@ Attributes:
   : tensor<3x4xf32> -> tensor<3x4xf64>
 ```
 """
-function all_reduce(input::Value; result::IR.Type, mesh, mesh_axes=nothing, reduction=nothing, location=Location())
+function all_reduce(input; result::IR.Type, mesh, mesh_axes=nothing, reduction=nothing, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), ]
@@ -131,9 +131,9 @@ device (1, 0) -> |  9 10 | 13 14 | <- device (1, 1)
                  +-------+-------+
 ```
 """
-function all_slice(input::Value; result::IR.Type, mesh, mesh_axes=nothing, slice_axis, location=Location())
+function all_slice(input; result::IR.Type, mesh, mesh_axes=nothing, slice_axis, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("slice_axis", slice_axis), ]
@@ -182,9 +182,9 @@ Result:
 +-------+-------+-------+
 ```
 """
-function all_to_all(input::Value; result::IR.Type, mesh, mesh_axes=nothing, split_axis, concat_axis, location=Location())
+function all_to_all(input; result::IR.Type, mesh, mesh_axes=nothing, split_axis, concat_axis, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("split_axis", split_axis), namedattribute("concat_axis", concat_axis), ]
@@ -234,9 +234,9 @@ device (1, 0) -> |  1  2 |  3  4 | <- device (1, 1)
                  +-------+-------+
 ```
 """
-function broadcast(input::Value, root_dynamic::Vector{Value}; result::IR.Type, mesh, mesh_axes=nothing, root, location=Location())
+function broadcast(input, root_dynamic; result::IR.Type, mesh, mesh_axes=nothing, root, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, root_dynamic..., ]
+    operands = API.MlirValue[get_value(input), get_value.(root_dynamic)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("root", root), ]
@@ -292,9 +292,9 @@ Result:
 ```
 Devices `(0, 0)` and `(1, 0)` have undefined result.
 """
-function gather(input::Value, root_dynamic::Vector{Value}; result::IR.Type, mesh, mesh_axes=nothing, gather_axis, root, location=Location())
+function gather(input, root_dynamic; result::IR.Type, mesh, mesh_axes=nothing, gather_axis, root, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, root_dynamic..., ]
+    operands = API.MlirValue[get_value(input), get_value.(root_dynamic)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("gather_axis", gather_axis), namedattribute("root", root), ]
@@ -347,7 +347,7 @@ mesh.mesh @mesh3(shape = ?x?)
 """
 function mesh_(; sym_name, shape, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("sym_name", sym_name), namedattribute("shape", shape), ]
@@ -366,7 +366,7 @@ end
 """
 function mesh_shape(; result::Vector{IR.Type}, mesh, axes=nothing, location=Location())
     results = IR.Type[result..., ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), ]
@@ -392,7 +392,7 @@ index `(1, 2, 3)` will have linear index `3 + 30*2 + 20*30*1`.
 """
 function process_linear_index(; result=nothing::Union{Nothing, IR.Type}, mesh, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), ]
@@ -415,7 +415,7 @@ If the axes are empty then get the index along all axes.
 """
 function process_multi_index(; result::Vector{IR.Type}, mesh, axes=nothing, location=Location())
     results = IR.Type[result..., ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), ]
@@ -434,9 +434,9 @@ end
 
 Receive from a device within a device group.
 """
-function recv(input::Value, source_dynamic::Vector{Value}; result::IR.Type, mesh, mesh_axes=nothing, source=nothing, location=Location())
+function recv(input, source_dynamic; result::IR.Type, mesh, mesh_axes=nothing, source=nothing, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, source_dynamic..., ]
+    operands = API.MlirValue[get_value(input), get_value.(source_dynamic)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), ]
@@ -472,9 +472,9 @@ Attributes:
   : (tensor<3x4xf32>) -> tensor<3x4xf64>
 ```
 """
-function reduce(input::Value, root_dynamic::Vector{Value}; result::IR.Type, mesh, mesh_axes=nothing, reduction=nothing, root, location=Location())
+function reduce(input, root_dynamic; result::IR.Type, mesh, mesh_axes=nothing, reduction=nothing, root, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, root_dynamic..., ]
+    operands = API.MlirValue[get_value(input), get_value.(root_dynamic)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("root", root), ]
@@ -532,9 +532,9 @@ Result:
 +-------+
 ```
 """
-function reduce_scatter(input::Value; result::IR.Type, mesh, mesh_axes=nothing, reduction=nothing, scatter_axis, location=Location())
+function reduce_scatter(input; result::IR.Type, mesh, mesh_axes=nothing, reduction=nothing, scatter_axis, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("scatter_axis", scatter_axis), ]
@@ -596,9 +596,9 @@ device (1, 0) -> |  3  4 |  7  8 |
                           (1, 1)
 ```
 """
-function scatter(input::Value, root_dynamic::Vector{Value}; result::IR.Type, mesh, mesh_axes=nothing, scatter_axis, root, location=Location())
+function scatter(input, root_dynamic; result::IR.Type, mesh, mesh_axes=nothing, scatter_axis, root, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, root_dynamic..., ]
+    operands = API.MlirValue[get_value(input), get_value.(root_dynamic)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("scatter_axis", scatter_axis), namedattribute("root", root), ]
@@ -617,9 +617,9 @@ end
 
 Send from one device to another within a device group.
 """
-function send(input::Value, destination_dynamic::Vector{Value}; result::IR.Type, mesh, mesh_axes=nothing, destination, location=Location())
+function send(input, destination_dynamic; result::IR.Type, mesh, mesh_axes=nothing, destination, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, destination_dynamic..., ]
+    operands = API.MlirValue[get_value(input), get_value.(destination_dynamic)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("destination", destination), ]
@@ -710,9 +710,9 @@ func.func @result_annotated_after_operand(
 }
 ```
 """
-function shard(src::Value; result=nothing::Union{Nothing, IR.Type}, shard, annotate_for_users=nothing, location=Location())
+function shard(src; result=nothing::Union{Nothing, IR.Type}, shard, annotate_for_users=nothing, location=Location())
     results = IR.Type[]
-    operands = Value[src, ]
+    operands = API.MlirValue[get_value(src), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("shard", shard), ]
@@ -766,9 +766,9 @@ Result:
 +----+----+----+----+
 ```
 """
-function shift(input::Value; result::IR.Type, mesh, mesh_axes=nothing, shift_axis, offset, rotate=nothing, location=Location())
+function shift(input; result::IR.Type, mesh, mesh_axes=nothing, shift_axis, offset, rotate=nothing, location=Location())
     results = IR.Type[result, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mesh", mesh), namedattribute("shift_axis", shift_axis), namedattribute("offset", offset), ]

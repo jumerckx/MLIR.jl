@@ -1,6 +1,6 @@
 module emitc
 
-import ...IR: IR, NamedAttribute, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: IR, NamedAttribute, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -24,9 +24,9 @@ int32_t v5 = v1 + v2;
 float* v6 = v3 + v4;
 ```
 """
-function add(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function add(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -57,9 +57,9 @@ can be applied to a single operand.
 
 ```
 """
-function apply(operand::Value; result::IR.Type, applicableOperator, location=Location())
+function apply(operand; result::IR.Type, applicableOperator, location=Location())
     results = IR.Type[result, ]
-    operands = Value[operand, ]
+    operands = API.MlirValue[get_value(operand), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("applicableOperator", applicableOperator), ]
@@ -91,9 +91,9 @@ emitted as a C/C++ \'=\' operator.
 \"emitc.assign\"(%0, %1) : (i32, i32) -> ()
 ```
 """
-function assign(var::Value, value::Value; location=Location())
+function assign(var, value; location=Location())
     results = IR.Type[]
-    operands = Value[var, value, ]
+    operands = API.MlirValue[get_value(var), get_value(value), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -122,9 +122,9 @@ be applied.
 int32_t v3 = v1 & v2;
 ```
 """
-function bitwise_and(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function bitwise_and(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -153,9 +153,9 @@ With the `bitwise_left_shift` operation the bitwise operator <<
 int32_t v3 = v1 << v2;
 ```
 """
-function bitwise_left_shift(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function bitwise_left_shift(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -184,9 +184,9 @@ be applied.
 int32_t v2 = ~v1;
 ```
 """
-function bitwise_not(operand_0::Value; result_0::IR.Type, location=Location())
+function bitwise_not(operand_0; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operand_0, ]
+    operands = API.MlirValue[get_value(operand_0), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -215,9 +215,9 @@ can be applied.
 int32_t v3 = v1 | v2;
 ```
 """
-function bitwise_or(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function bitwise_or(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -246,9 +246,9 @@ With the `bitwise_right_shift` operation the bitwise operator >>
 int32_t v3 = v1 >> v2;
 ```
 """
-function bitwise_right_shift(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function bitwise_right_shift(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -277,9 +277,9 @@ can be applied.
 int32_t v3 = v1 ^ v2;
 ```
 """
-function bitwise_xor(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function bitwise_xor(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -306,9 +306,9 @@ symbol reference attribute named \"callee\".
 %2 = emitc.call @my_add(%0, %1) : (f32, f32) -> f32
 ```
 """
-function call(operands::Vector{Value}; result_0::Vector{IR.Type}, callee, location=Location())
+function call(operands; result_0::Vector{IR.Type}, callee, location=Location())
     results = IR.Type[result_0..., ]
-    operands = Value[operands..., ]
+    operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("callee", callee), ]
@@ -341,9 +341,9 @@ of operands and attributes in the call as follows:
 %0 = \"emitc.call_opaque\"() {callee = \"foo\"} : () -> i32
 ```
 """
-function call_opaque(operands::Vector{Value}; result_0::Vector{IR.Type}, callee, args=nothing, template_args=nothing, location=Location())
+function call_opaque(operands; result_0::Vector{IR.Type}, callee, args=nothing, template_args=nothing, location=Location())
     results = IR.Type[result_0..., ]
-    operands = Value[operands..., ]
+    operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("callee", callee), ]
@@ -376,9 +376,9 @@ and EmitC types.
     !emitc.ptr<!emitc.opaque<\"void\">> to !emitc.ptr<i32>
 ```
 """
-function cast(source::Value; dest::IR.Type, location=Location())
+function cast(source; dest::IR.Type, location=Location())
     results = IR.Type[dest, ]
-    operands = Value[source, ]
+    operands = API.MlirValue[get_value(source), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -423,9 +423,9 @@ bool v5 = v1 == v2;
 std::valarray<bool> v6 = v3 < v4;
 ```
 """
-function cmp(lhs::Value, rhs::Value; result_0::IR.Type, predicate, location=Location())
+function cmp(lhs, rhs; result_0::IR.Type, predicate, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("predicate", predicate), ]
@@ -462,9 +462,9 @@ int32_t v5 = 11;
 int32_t v6 = v3 ? v4 : v5;
 ```
 """
-function conditional(condition::Value, true_value::Value, false_value::Value; result::IR.Type, location=Location())
+function conditional(condition, true_value, false_value; result::IR.Type, location=Location())
     results = IR.Type[result, ]
-    operands = Value[condition, true_value, false_value, ]
+    operands = API.MlirValue[get_value(condition), get_value(true_value), get_value(false_value), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -501,7 +501,7 @@ it should not be used with pointers.
 """
 function constant(; result_0::IR.Type, value, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("value", value), ]
@@ -550,7 +550,7 @@ int32_t bar(int32_t v1) {
 """
 function declare_func(; sym_name, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("sym_name", sym_name), ]
@@ -582,9 +582,9 @@ int32_t v5 = v1 / v2;
 float v6 = v3 / v4;
 ```
 """
-function div(operand_0::Value, operand_1::Value; result_0::IR.Type, location=Location())
+function div(operand_0, operand_1; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operand_0, operand_1, ]
+    operands = API.MlirValue[get_value(operand_0), get_value(operand_1), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -635,7 +635,7 @@ at its use.
 """
 function expression(; result::IR.Type, do_not_inline=nothing, region::Region, location=Location())
     results = IR.Type[result, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -681,9 +681,9 @@ emitc.for %iv_32 = %lb_32 to %ub_32 step %step_32 : i32 {
 }
 ```
 """
-function for_(lowerBound::Value, upperBound::Value, step::Value; region::Region, location=Location())
+function for_(lowerBound, upperBound, step; region::Region, location=Location())
     results = IR.Type[]
-    operands = Value[lowerBound, upperBound, step, ]
+    operands = API.MlirValue[get_value(lowerBound), get_value(upperBound), get_value(step), ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -738,7 +738,7 @@ emitc.func private @extern_func(i32)
 """
 function func(; sym_name, function_type, specifiers=nothing, arg_attrs=nothing, res_attrs=nothing, body::Region, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[body, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("sym_name", sym_name), namedattribute("function_type", function_type), ]
@@ -774,9 +774,9 @@ blocks. The blocks are always terminated with `emitc.yield`, which can be
 left out to be inserted implicitly. This operation doesn\'t produce any
 results.
 """
-function if_(condition::Value; thenRegion::Region, elseRegion::Region, location=Location())
+function if_(condition; thenRegion::Region, elseRegion::Region, location=Location())
     results = IR.Type[]
-    operands = Value[condition, ]
+    operands = API.MlirValue[get_value(condition), ]
     owned_regions = Region[thenRegion, elseRegion, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -813,7 +813,7 @@ emitc.include \"myheader.h\"
 """
 function include(; include, is_standard_include=nothing, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("include", include), ]
@@ -835,7 +835,7 @@ specified by an attribute.
 """
 function literal(; result::IR.Type, value, location=Location())
     results = IR.Type[result, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("value", value), ]
@@ -864,9 +864,9 @@ be applied.
 bool v3 = v1 && v2;
 ```
 """
-function logical_and(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function logical_and(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -895,9 +895,9 @@ be applied.
 bool v2 = !v1;
 ```
 """
-function logical_not(operand_0::Value; result_0::IR.Type, location=Location())
+function logical_not(operand_0; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operand_0, ]
+    operands = API.MlirValue[get_value(operand_0), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -926,9 +926,9 @@ can be applied.
 bool v3 = v1 || v2;
 ```
 """
-function logical_or(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function logical_or(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -960,9 +960,9 @@ int32_t v5 = v1 * v2;
 float v6 = v3 * v4;
 ```
 """
-function mul(operand_0::Value, operand_1::Value; result_0::IR.Type, location=Location())
+function mul(operand_0, operand_1; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operand_0, operand_1, ]
+    operands = API.MlirValue[get_value(operand_0), get_value(operand_1), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -992,9 +992,9 @@ be applied.
 int32_t v5 = v1 % v2;
 ```
 """
-function rem(operand_0::Value, operand_1::Value; result_0::IR.Type, location=Location())
+function rem(operand_0, operand_1; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operand_0, operand_1, ]
+    operands = API.MlirValue[get_value(operand_0), get_value(operand_1), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1024,13 +1024,13 @@ emitc.func @foo() : (i32) {
 }
 ```
 """
-function return_(operand=nothing::Union{Nothing, Value}; location=Location())
+function return_(operand=nothing; location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(operand) && push!(operands, operand)
+    (operand != nothing) && push!(operands, get_value(operand))
     
     create_operation(
         "emitc.return", location;
@@ -1062,9 +1062,9 @@ float* v8 = v3 - v4;
 ptrdiff_t v9 = v5 - v6;
 ```
 """
-function sub(lhs::Value, rhs::Value; result_0::IR.Type, location=Location())
+function sub(lhs, rhs; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1093,9 +1093,9 @@ applied.
 int32_t v2 = -v1;
 ```
 """
-function unary_minus(operand_0::Value; result_0::IR.Type, location=Location())
+function unary_minus(operand_0; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operand_0, ]
+    operands = API.MlirValue[get_value(operand_0), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1124,9 +1124,9 @@ applied.
 int32_t v2 = +v1;
 ```
 """
-function unary_plus(operand_0::Value; result_0::IR.Type, location=Location())
+function unary_plus(operand_0; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operand_0, ]
+    operands = API.MlirValue[get_value(operand_0), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1176,7 +1176,7 @@ emitc.call_opaque \"write\"(%2, %3)
 """
 function variable(; result_0::IR.Type, value, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("value", value), ]
@@ -1220,7 +1220,7 @@ extern \"C\" {
 """
 function verbatim(; value, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("value", value), ]
@@ -1245,13 +1245,13 @@ may be left out in the custom syntax and the builders will insert one
 implicitly. Otherwise, it has to be present in the syntax to indicate which
 value is yielded.
 """
-function yield(result=nothing::Union{Nothing, Value}; location=Location())
+function yield(result=nothing; location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(result) && push!(operands, result)
+    (result != nothing) && push!(operands, get_value(result))
     
     create_operation(
         "emitc.yield", location;

@@ -1,6 +1,6 @@
 module quant
 
-import ...IR: IR, NamedAttribute, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: IR, NamedAttribute, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -19,9 +19,9 @@ Especially early in transformation, it is common to have `dcast`s on
 all operands to ops that must operate with the expressed type (typically
 math ops prior to lowering to target-specific, quantized kernels).
 """
-function dcast(arg::Value; res::IR.Type, location=Location())
+function dcast(arg; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[arg, ]
+    operands = API.MlirValue[get_value(arg), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -58,9 +58,9 @@ required. In addition, it is also common to have an identity `qcast`
 it is legal to use a quantized representation (but is not known to be
 acceptable).
 """
-function qcast(arg::Value; res::IR.Type, location=Location())
+function qcast(arg; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[arg, ]
+    operands = API.MlirValue[get_value(arg), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -94,9 +94,9 @@ tensor<4xi8> -> tensor<4x!quant<\"uniform[i8:f32]{1.0}\">>
 vector<4xi8> -> vector<4x!quant<\"uniform[i8:f32]{1.0}\">>
 ```
 """
-function scast(arg::Value; res::IR.Type, location=Location())
+function scast(arg; res::IR.Type, location=Location())
     results = IR.Type[res, ]
-    operands = Value[arg, ]
+    operands = API.MlirValue[get_value(arg), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]

@@ -1,6 +1,6 @@
 module scf
 
-import ...IR: IR, NamedAttribute, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: IR, NamedAttribute, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -13,9 +13,9 @@ of the `scf.while` construct. If its first argument is true, the \"after\"
 region of `scf.while` is executed, with the remaining arguments forwarded
 to the entry block of the region. Otherwise, the loop terminates.
 """
-function condition(condition::Value, args::Vector{Value}; location=Location())
+function condition(condition, args; location=Location())
     results = IR.Type[]
-    operands = Value[condition, args..., ]
+    operands = API.MlirValue[get_value(condition), get_value.(args)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -71,7 +71,7 @@ affine.for %i = 0 to 100 {
 """
 function execute_region(; result_0::Vector{IR.Type}, region::Region, location=Location())
     results = IR.Type[result_0..., ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -178,9 +178,9 @@ func.func @conditional_reduce(%buffer: memref<1024xf32>, %lb: index,
 }
 ```
 """
-function for_(lowerBound::Value, upperBound::Value, step::Value, initArgs::Vector{Value}; results::Vector{IR.Type}, region::Region, location=Location())
+function for_(lowerBound, upperBound, step, initArgs; results::Vector{IR.Type}, region::Region, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[lowerBound, upperBound, step, initArgs..., ]
+    operands = API.MlirValue[get_value(lowerBound), get_value(upperBound), get_value(step), get_value.(initArgs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -359,9 +359,9 @@ Example with privatized tensors:
 }
 ```
 """
-function forall(dynamicLowerBound::Vector{Value}, dynamicUpperBound::Vector{Value}, dynamicStep::Vector{Value}, outputs::Vector{Value}; results::Vector{IR.Type}, staticLowerBound, staticUpperBound, staticStep, mapping=nothing, region::Region, location=Location())
+function forall(dynamicLowerBound, dynamicUpperBound, dynamicStep, outputs; results::Vector{IR.Type}, staticLowerBound, staticUpperBound, staticStep, mapping=nothing, region::Region, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[dynamicLowerBound..., dynamicUpperBound..., dynamicStep..., outputs..., ]
+    operands = API.MlirValue[get_value.(dynamicLowerBound)..., get_value.(dynamicUpperBound)..., get_value.(dynamicStep)..., get_value.(outputs)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("staticLowerBound", staticLowerBound), namedattribute("staticUpperBound", staticUpperBound), namedattribute("staticStep", staticStep), ]
@@ -427,9 +427,9 @@ scf.if %b  {
 The types of the yielded values must match the result types of the
 `scf.if`.
 """
-function if_(condition::Value; results::Vector{IR.Type}, thenRegion::Region, elseRegion::Region, location=Location())
+function if_(condition; results::Vector{IR.Type}, thenRegion::Region, elseRegion::Region, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[condition, ]
+    operands = API.MlirValue[get_value(condition), ]
     owned_regions = Region[thenRegion, elseRegion, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -455,7 +455,7 @@ The result number corresponds to the position of the op in the terminator.
 """
 function forall_in_parallel(; region::Region, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -499,9 +499,9 @@ default {
 }
 ```
 """
-function index_switch(arg::Value; results::Vector{IR.Type}, cases, defaultRegion::Region, caseRegions::Vector{Region}, location=Location())
+function index_switch(arg; results::Vector{IR.Type}, cases, defaultRegion::Region, caseRegions::Vector{Region}, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[arg, ]
+    operands = API.MlirValue[get_value(arg), ]
     owned_regions = Region[defaultRegion, caseRegions..., ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("cases", cases), ]
@@ -569,9 +569,9 @@ absent.
 }
 ```
 """
-function parallel(lowerBound::Vector{Value}, upperBound::Vector{Value}, step::Vector{Value}, initVals::Vector{Value}; results::Vector{IR.Type}, region::Region, location=Location())
+function parallel(lowerBound, upperBound, step, initVals; results::Vector{IR.Type}, region::Region, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[lowerBound..., upperBound..., step..., initVals..., ]
+    operands = API.MlirValue[get_value.(lowerBound)..., get_value.(upperBound)..., get_value.(step)..., get_value.(initVals)..., ]
     owned_regions = Region[region, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -619,9 +619,9 @@ scf.reduce(%operand : f32) {
 }
 ```
 """
-function reduce(operands::Vector{Value}; reductions::Vector{Region}, location=Location())
+function reduce(operands; reductions::Vector{Region}, location=Location())
     results = IR.Type[]
-    operands = Value[operands..., ]
+    operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[reductions..., ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -647,9 +647,9 @@ operand type as the corresponding operand of the enclosing \"scf.reduce\" op.
 scf.reduce.return %res : f32
 ```
 """
-function reduce_return(result::Value; location=Location())
+function reduce_return(result; location=Location())
     results = IR.Type[]
-    operands = Value[result, ]
+    operands = API.MlirValue[get_value(result), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -776,9 +776,9 @@ assignment-list ::= assignment | assignment `,` assignment-list
 assignment ::= ssa-value `=` ssa-value
 ```
 """
-function while_(inits::Vector{Value}; results::Vector{IR.Type}, before::Region, after::Region, location=Location())
+function while_(inits; results::Vector{IR.Type}, before::Region, after::Region, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[inits..., ]
+    operands = API.MlirValue[get_value.(inits)..., ]
     owned_regions = Region[before, after, ]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -804,9 +804,9 @@ left out in the custom syntax and the builders will insert one implicitly.
 Otherwise, it has to be present in the syntax to indicate which values are
 yielded.
 """
-function yield(results::Vector{Value}; location=Location())
+function yield(results; location=Location())
     results = IR.Type[]
-    operands = Value[results..., ]
+    operands = API.MlirValue[get_value.(results)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]

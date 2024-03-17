@@ -1,6 +1,6 @@
 module vector
 
-import ...IR: IR, NamedAttribute, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: IR, NamedAttribute, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -21,7 +21,7 @@ them grouped and scaled with the value returned by \'vscale\'.
 """
 function vscale(; res=nothing::Union{Nothing, IR.Type}, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -59,9 +59,9 @@ equal.
 %7 = vector.bitcast %6 : vector<f32> to vector<i32>
 ```
 """
-function bitcast(source::Value; result::IR.Type, location=Location())
+function bitcast(source; result::IR.Type, location=Location())
     results = IR.Type[result, ]
-    operands = Value[source, ]
+    operands = API.MlirValue[get_value(source), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -105,9 +105,9 @@ shaped vector with the same element type is always legal.
 %2 = vector.broadcast %1 : vector<16xf32> to vector<4x16xf32>
 ```
 """
-function broadcast(source::Value; vector::IR.Type, location=Location())
+function broadcast(source; vector::IR.Type, location=Location())
     results = IR.Type[vector, ]
-    operands = Value[source, ]
+    operands = API.MlirValue[get_value(source), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -156,9 +156,9 @@ vector.compressstore %base[%i, %j], %mask, %value
   : memref<?x?xf32>, vector<16xi1>, vector<16xf32>
 ```
 """
-function compressstore(base::Value, indices::Vector{Value}, mask::Value, valueToStore::Value; location=Location())
+function compressstore(base, indices, mask, valueToStore; location=Location())
     results = IR.Type[]
-    operands = Value[base, indices..., mask, valueToStore, ]
+    operands = API.MlirValue[get_value(base), get_value.(indices)..., get_value(mask), get_value(valueToStore), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -207,7 +207,7 @@ print %1
 """
 function constant_mask(; result_0::IR.Type, mask_dim_sizes, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mask_dim_sizes", mask_dim_sizes), ]
@@ -332,9 +332,9 @@ attribute can take the values `add`/`mul`/`minsi`/`minui`/`maxsi`/`maxui`
   : vector<10xf32>, vector<10xf32> into f32
 ```
 """
-function contract(lhs::Value, rhs::Value, acc::Value; result_0::IR.Type, indexing_maps, iterator_types, kind=nothing, location=Location())
+function contract(lhs, rhs, acc; result_0::IR.Type, indexing_maps, iterator_types, kind=nothing, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, acc, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), get_value(acc), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("indexing_maps", indexing_maps), namedattribute("iterator_types", iterator_types), ]
@@ -378,9 +378,9 @@ print %1
         3 | 0    0    0
 ```
 """
-function create_mask(operands::Vector{Value}; result_0::IR.Type, location=Location())
+function create_mask(operands; result_0::IR.Type, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[operands..., ]
+    operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -429,9 +429,9 @@ Examples:
    : memref<?x?xf32>, vector<16xi1>, vector<16xf32> into vector<16xf32>
 ```
 """
-function expandload(base::Value, indices::Vector{Value}, mask::Value, pass_thru::Value; result::IR.Type, location=Location())
+function expandload(base, indices, mask, pass_thru; result::IR.Type, location=Location())
     results = IR.Type[result, ]
-    operands = Value[base, indices..., mask, pass_thru, ]
+    operands = API.MlirValue[get_value(base), get_value.(indices)..., get_value(mask), get_value(pass_thru), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -466,13 +466,13 @@ https://llvm.org/docs/LangRef.html#extractelement-instruction
 %2 = vector.extractelement %z[]: vector<f32>
 ```
 """
-function extractelement(vector::Value, position=nothing::Union{Nothing, Value}; result=nothing::Union{Nothing, IR.Type}, location=Location())
+function extractelement(vector, position=nothing; result=nothing::Union{Nothing, IR.Type}, location=Location())
     results = IR.Type[]
-    operands = Value[vector, ]
+    operands = API.MlirValue[get_value(vector), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(position) && push!(operands, position)
+    (position != nothing) && push!(operands, get_value(position))
     !isnothing(result) && push!(results, result)
     
     create_operation(
@@ -499,9 +499,9 @@ the proper position. Degenerates to an element type if n-k is zero.
 %5 = vector.extract %0[2, %b]: vector<16xf32> from vector<4x8x16xf32>
 ```
 """
-function extract(vector::Value, dynamic_position::Vector{Value}; result=nothing::Union{Nothing, IR.Type}, static_position, location=Location())
+function extract(vector, dynamic_position; result=nothing::Union{Nothing, IR.Type}, static_position, location=Location())
     results = IR.Type[]
-    operands = Value[vector, dynamic_position..., ]
+    operands = API.MlirValue[get_value(vector), get_value.(dynamic_position)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("static_position", static_position), ]
@@ -540,9 +540,9 @@ attribute. The returned subvector contains the elements starting at offset
   vector<4x8x16xf32> to vector<2x4x16xf32>
 ```
 """
-function extract_strided_slice(vector::Value; result_0::IR.Type, offsets, sizes, strides, location=Location())
+function extract_strided_slice(vector; result_0::IR.Type, offsets, sizes, strides, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[vector, ]
+    operands = API.MlirValue[get_value(vector), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("offsets", offsets), namedattribute("sizes", sizes), namedattribute("strides", strides), ]
@@ -572,9 +572,9 @@ to the `llvm.fma.*` intrinsic.
 %3 = vector.fma %0, %1, %2: vector<8x16xf32>
 ```
 """
-function fma(lhs::Value, rhs::Value, acc::Value; result=nothing::Union{Nothing, IR.Type}, location=Location())
+function fma(lhs, rhs, acc; result=nothing::Union{Nothing, IR.Type}, location=Location())
     results = IR.Type[]
-    operands = Value[lhs, rhs, acc, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), get_value(acc), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -613,9 +613,9 @@ http://llvm.org/docs/LangRef.html#llvm-matrix-transpose-intrinsic
    : vector<16xf32> -> vector<16xf32>
 ```
 """
-function flat_transpose(matrix::Value; res::IR.Type, rows, columns, location=Location())
+function flat_transpose(matrix; res::IR.Type, rows, columns, location=Location())
     results = IR.Type[res, ]
-    operands = Value[matrix, ]
+    operands = API.MlirValue[get_value(matrix), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("rows", rows), namedattribute("columns", columns), ]
@@ -663,9 +663,9 @@ Examples:
    : memref<16x16xf32>, vector<16xi32>, vector<16xi1>, vector<16xf32> into vector<16xf32>
 ```
 """
-function gather(base::Value, indices::Vector{Value}, index_vec::Value, mask::Value, pass_thru::Value; result::IR.Type, location=Location())
+function gather(base, indices, index_vec, mask, pass_thru; result::IR.Type, location=Location())
     results = IR.Type[result, ]
-    operands = Value[base, indices..., index_vec, mask, pass_thru, ]
+    operands = API.MlirValue[get_value(base), get_value.(indices)..., get_value(index_vec), get_value(mask), get_value(pass_thru), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -699,13 +699,13 @@ https://llvm.org/docs/LangRef.html#insertelement-instruction
 %2 = vector.insertelement %f, %z[]: vector<f32>
 ```
 """
-function insertelement(source::Value, dest::Value, position=nothing::Union{Nothing, Value}; result=nothing::Union{Nothing, IR.Type}, location=Location())
+function insertelement(source, dest, position=nothing; result=nothing::Union{Nothing, IR.Type}, location=Location())
     results = IR.Type[]
-    operands = Value[source, dest, ]
+    operands = API.MlirValue[get_value(source), get_value(dest), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(position) && push!(operands, position)
+    (position != nothing) && push!(operands, get_value(position))
     !isnothing(result) && push!(results, result)
     
     create_operation(
@@ -733,9 +733,9 @@ position. Degenerates to a scalar or a 0-d vector source type when n = 0.
 %12 = vector.insert %4, %10[2, %b] : vector<16xf32> into vector<4x8x16xf32>
 ```
 """
-function insert(source::Value, dest::Value, dynamic_position::Vector{Value}; result=nothing::Union{Nothing, IR.Type}, static_position, location=Location())
+function insert(source, dest, dynamic_position; result=nothing::Union{Nothing, IR.Type}, static_position, location=Location())
     results = IR.Type[]
-    operands = Value[source, dest, dynamic_position..., ]
+    operands = API.MlirValue[get_value(source), get_value(dest), get_value.(dynamic_position)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("static_position", static_position), ]
@@ -771,9 +771,9 @@ the proper location as specified by the offsets.
   vector<2x4xf32> into vector<16x4x8xf32>
 ```
 """
-function insert_strided_slice(source::Value, dest::Value; res=nothing::Union{Nothing, IR.Type}, offsets, strides, location=Location())
+function insert_strided_slice(source, dest; res=nothing::Union{Nothing, IR.Type}, offsets, strides, location=Location())
     results = IR.Type[]
-    operands = Value[source, dest, ]
+    operands = API.MlirValue[get_value(source), get_value(dest), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("offsets", offsets), namedattribute("strides", strides), ]
@@ -815,9 +815,9 @@ trailing dimension is scalable.
            : vector<6x3xf32>     ; yields vector<6x6xf32>
 ```
 """
-function interleave(lhs::Value, rhs::Value; result=nothing::Union{Nothing, IR.Type}, location=Location())
+function interleave(lhs, rhs; result=nothing::Union{Nothing, IR.Type}, location=Location())
     results = IR.Type[]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -892,9 +892,9 @@ loads.
 %result = vector.load %memref[%c0] : memref<7xf32>, vector<8xf32>
 ```
 """
-function load(base::Value, indices::Vector{Value}; result::IR.Type, nontemporal=nothing, location=Location())
+function load(base, indices; result::IR.Type, nontemporal=nothing, location=Location())
     results = IR.Type[result, ]
-    operands = Value[base, indices..., ]
+    operands = API.MlirValue[get_value(base), get_value.(indices)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -956,13 +956,13 @@ Examples:
   vector.mask %mask { vector.transfer_write %val, %t0[%idx] : vector<16xf32>, tensor<?xf32> } : vector<16xi1> -> tensor<?xf32>
 ```
 """
-function mask(mask::Value, passthru=nothing::Union{Nothing, Value}; results::Vector{IR.Type}, maskRegion::Region, location=Location())
+function mask(mask, passthru=nothing; results::Vector{IR.Type}, maskRegion::Region, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[mask, ]
+    operands = API.MlirValue[get_value(mask), ]
     owned_regions = Region[maskRegion, ]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(passthru) && push!(operands, passthru)
+    (passthru != nothing) && push!(operands, get_value(passthru))
     
     create_operation(
         "vector.mask", location;
@@ -1006,9 +1006,9 @@ Examples:
    : memref<?x?xf32>, vector<16xi1>, vector<16xf32> into vector<16xf32>
 ```
 """
-function maskedload(base::Value, indices::Vector{Value}, mask::Value, pass_thru::Value; result::IR.Type, location=Location())
+function maskedload(base, indices, mask, pass_thru; result::IR.Type, location=Location())
     results = IR.Type[result, ]
-    operands = Value[base, indices..., mask, pass_thru, ]
+    operands = API.MlirValue[get_value(base), get_value.(indices)..., get_value(mask), get_value(pass_thru), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1055,9 +1055,9 @@ vector.maskedstore %base[%i, %j], %mask, %value
   : memref<?x?xf32>, vector<16xi1>, vector<16xf32>
 ```
 """
-function maskedstore(base::Value, indices::Vector{Value}, mask::Value, valueToStore::Value; location=Location())
+function maskedstore(base, indices, mask, valueToStore; location=Location())
     results = IR.Type[]
-    operands = Value[base, indices..., mask, valueToStore, ]
+    operands = API.MlirValue[get_value(base), get_value.(indices)..., get_value(mask), get_value(valueToStore), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1097,9 +1097,9 @@ http://llvm.org/docs/LangRef.html#llvm-matrix-multiply-intrinsic
   (vector<64xf64>, vector<48xf64>) -> vector<12xf64>
 ```
 """
-function matrix_multiply(lhs::Value, rhs::Value; res::IR.Type, lhs_rows, lhs_columns, rhs_columns, location=Location())
+function matrix_multiply(lhs, rhs; res::IR.Type, lhs_rows, lhs_columns, rhs_columns, location=Location())
     results = IR.Type[res, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("lhs_rows", lhs_rows), namedattribute("lhs_columns", lhs_columns), namedattribute("rhs_columns", rhs_columns), ]
@@ -1130,9 +1130,9 @@ Takes an initial accumulator operand.
   vector<4x16xf32> into f32
 ```
 """
-function multi_reduction(source::Value, acc::Value; dest=nothing::Union{Nothing, IR.Type}, kind, reduction_dims, location=Location())
+function multi_reduction(source, acc; dest=nothing::Union{Nothing, IR.Type}, kind, reduction_dims, location=Location())
     results = IR.Type[]
-    operands = Value[source, acc, ]
+    operands = API.MlirValue[get_value(source), get_value(acc), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("kind", kind), namedattribute("reduction_dims", reduction_dims), ]
@@ -1195,13 +1195,13 @@ return %6: vector<10xf32>
 
 ```
 """
-function outerproduct(lhs::Value, rhs::Value, acc=nothing::Union{Nothing, Value}; result_0::IR.Type, kind=nothing, location=Location())
+function outerproduct(lhs, rhs, acc=nothing; result_0::IR.Type, kind=nothing, location=Location())
     results = IR.Type[result_0, ]
-    operands = Value[lhs, rhs, ]
+    operands = API.MlirValue[get_value(lhs), get_value(rhs), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(acc) && push!(operands, acc)
+    (acc != nothing) && push!(operands, get_value(acc))
     !isnothing(kind) && push!(attributes, namedattribute("kind", kind))
     
     create_operation(
@@ -1258,13 +1258,13 @@ print constant strings:
 vector.print str \"Hello, World!\"
 ```
 """
-function print(source=nothing::Union{Nothing, Value}; punctuation=nothing, stringLiteral=nothing, location=Location())
+function print(source=nothing; punctuation=nothing, stringLiteral=nothing, location=Location())
     results = IR.Type[]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(source) && push!(operands, source)
+    (source != nothing) && push!(operands, get_value(source))
     !isnothing(punctuation) && push!(attributes, namedattribute("punctuation", punctuation))
     !isnothing(stringLiteral) && push!(attributes, namedattribute("stringLiteral", stringLiteral))
     
@@ -1299,13 +1299,13 @@ http://llvm.org/docs/LangRef.html#vector-reduction-intrinsics
 %4 = vector.reduction <mul>, %0, %1 : vector<16xf32> into f32
 ```
 """
-function reduction(vector::Value, acc=nothing::Union{Nothing, Value}; dest::IR.Type, kind, fastmath=nothing, location=Location())
+function reduction(vector, acc=nothing; dest::IR.Type, kind, fastmath=nothing, location=Location())
     results = IR.Type[dest, ]
-    operands = Value[vector, ]
+    operands = API.MlirValue[get_value(vector), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("kind", kind), ]
-    !isnothing(acc) && push!(operands, acc)
+    (acc != nothing) && push!(operands, get_value(acc))
     !isnothing(fastmath) && push!(attributes, namedattribute("fastmath", fastmath))
     
     create_operation(
@@ -1400,9 +1400,9 @@ Example
                     [n, o, p, q],
                     [r, -, -, -]]]
 """
-function reshape(vector::Value, input_shape::Vector{Value}, output_shape::Vector{Value}; result::IR.Type, fixed_vector_sizes, location=Location())
+function reshape(vector, input_shape, output_shape; result::IR.Type, fixed_vector_sizes, location=Location())
     results = IR.Type[result, ]
-    operands = Value[vector, input_shape..., output_shape..., ]
+    operands = API.MlirValue[get_value(vector), get_value.(input_shape)..., get_value.(output_shape)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("fixed_vector_sizes", fixed_vector_sizes), ]
@@ -1440,9 +1440,9 @@ Invalid example:
 %1 = vector.scalable.extract %0[5] : vector<4xf32> from vector<[16]xf32>
 ```
 """
-function scalable_extract(source::Value; res::IR.Type, pos, location=Location())
+function scalable_extract(source; res::IR.Type, pos, location=Location())
     results = IR.Type[res, ]
-    operands = Value[source, ]
+    operands = API.MlirValue[get_value(source), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("pos", pos), ]
@@ -1483,9 +1483,9 @@ Invalid example:
 %2 = vector.scalable.insert %0, %1[5] : vector<4xf32> into vector<[16]xf32>
 ```
 """
-function scalable_insert(source::Value, dest::Value; res=nothing::Union{Nothing, IR.Type}, pos, location=Location())
+function scalable_insert(source, dest; res=nothing::Union{Nothing, IR.Type}, pos, location=Location())
     results = IR.Type[]
-    operands = Value[source, dest, ]
+    operands = API.MlirValue[get_value(source), get_value(dest), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("pos", pos), ]
@@ -1516,9 +1516,9 @@ the result of scan as well as the result of the last reduction in the scan.
   vector<4x8x16x32xf32>, vector<4x16x32xf32>
 ```
 """
-function scan(source::Value, initial_value::Value; dest=nothing::Union{Nothing, IR.Type}, accumulated_value=nothing::Union{Nothing, IR.Type}, kind, reduction_dim, inclusive, location=Location())
+function scan(source, initial_value; dest=nothing::Union{Nothing, IR.Type}, accumulated_value=nothing::Union{Nothing, IR.Type}, kind, reduction_dim, inclusive, location=Location())
     results = IR.Type[]
-    operands = Value[source, initial_value, ]
+    operands = API.MlirValue[get_value(source), get_value(initial_value), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("kind", kind), namedattribute("reduction_dim", reduction_dim), namedattribute("inclusive", inclusive), ]
@@ -1572,9 +1572,9 @@ vector.scatter %base[%i, %j][%v], %mask, %value
     : memref<16x16xf32>, vector<16xi32>, vector<16xi1>, vector<16xf32>
 ```
 """
-function scatter(base::Value, indices::Vector{Value}, index_vec::Value, mask::Value, valueToStore::Value; location=Location())
+function scatter(base, indices, index_vec, mask, valueToStore; location=Location())
     results = IR.Type[]
-    operands = Value[base, indices..., index_vec, mask, valueToStore, ]
+    operands = API.MlirValue[get_value(base), get_value.(indices)..., get_value(index_vec), get_value(mask), get_value(valueToStore), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1622,9 +1622,9 @@ is supported in that particular case, for now.
 
 ```
 """
-function shape_cast(source::Value; result::IR.Type, location=Location())
+function shape_cast(source; result::IR.Type, location=Location())
     results = IR.Type[result, ]
-    operands = Value[source, ]
+    operands = API.MlirValue[get_value(source), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1672,9 +1672,9 @@ The legality rules are:
            : vector<f32>, vector<f32>           ; yields vector<2xf32>
 ```
 """
-function shuffle(v1::Value, v2::Value; vector=nothing::Union{Nothing, IR.Type}, mask, location=Location())
+function shuffle(v1, v2; vector=nothing::Union{Nothing, IR.Type}, mask, location=Location())
     results = IR.Type[]
-    operands = Value[v1, v2, ]
+    operands = API.MlirValue[get_value(v1), get_value(v2), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mask", mask), ]
@@ -1701,9 +1701,9 @@ required to be of integer/index/float type.
 %t = vector.splat %s : vector<8x16xi32>
 ```
 """
-function splat(input::Value; aggregate::IR.Type, location=Location())
+function splat(input; aggregate::IR.Type, location=Location())
     results = IR.Type[aggregate, ]
-    operands = Value[input, ]
+    operands = API.MlirValue[get_value(input), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1775,9 +1775,9 @@ vector.store %valueToStore, %memref[%index] : memref<?xf32>, vector<8xf32>
 vector.store %valueToStore, %memref[%c0] : memref<7xf32>, vector<8xf32>
 ```
 """
-function store(valueToStore::Value, base::Value, indices::Vector{Value}; nontemporal=nothing, location=Location())
+function store(valueToStore, base, indices; nontemporal=nothing, location=Location())
     results = IR.Type[]
-    operands = Value[valueToStore, base, indices..., ]
+    operands = API.MlirValue[get_value(valueToStore), get_value(base), get_value.(indices)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -1973,13 +1973,13 @@ affine.for %i0 = 0 to %0 {
   tensor<f32>, vector<1xf32>
 ```
 """
-function transfer_read(source::Value, indices::Vector{Value}, padding::Value, mask=nothing::Union{Nothing, Value}; vector::IR.Type, permutation_map, in_bounds=nothing, location=Location())
+function transfer_read(source, indices, padding, mask=nothing; vector::IR.Type, permutation_map, in_bounds=nothing, location=Location())
     results = IR.Type[vector, ]
-    operands = Value[source, indices..., padding, ]
+    operands = API.MlirValue[get_value(source), get_value.(indices)..., get_value(padding), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("permutation_map", permutation_map), ]
-    !isnothing(mask) && push!(operands, mask)
+    (mask != nothing) && push!(operands, get_value(mask))
     push!(attributes, operandsegmentsizes([1, length(indices), 1, (mask==nothing) ? 0 : 1]))
     !isnothing(in_bounds) && push!(attributes, namedattribute("in_bounds", in_bounds))
     
@@ -2087,13 +2087,13 @@ vector.transfer_write %4, %arg1[%c3, %c3]
   vector<1xf32>, tensor<f32>
 ```
 """
-function transfer_write(vector::Value, source::Value, indices::Vector{Value}, mask=nothing::Union{Nothing, Value}; result=nothing::Union{Nothing, IR.Type}, permutation_map, in_bounds=nothing, location=Location())
+function transfer_write(vector, source, indices, mask=nothing; result=nothing::Union{Nothing, IR.Type}, permutation_map, in_bounds=nothing, location=Location())
     results = IR.Type[]
-    operands = Value[vector, source, indices..., ]
+    operands = API.MlirValue[get_value(vector), get_value(source), get_value.(indices)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("permutation_map", permutation_map), ]
-    !isnothing(mask) && push!(operands, mask)
+    (mask != nothing) && push!(operands, get_value(mask))
     push!(attributes, operandsegmentsizes([1, 1, length(indices), (mask==nothing) ? 0 : 1]))
     !isnothing(result) && push!(results, result)
     !isnothing(in_bounds) && push!(attributes, namedattribute("in_bounds", in_bounds))
@@ -2133,9 +2133,9 @@ the `permutation` array [i_1, .., i_n] must be a permutation of [0, .., n-1].
                       [c, f] ]
 ```
 """
-function transpose(vector::Value; result::IR.Type, permutation, location=Location())
+function transpose(vector; result::IR.Type, permutation, location=Location())
     results = IR.Type[result, ]
-    operands = Value[vector, ]
+    operands = API.MlirValue[get_value(vector), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("permutation", permutation), ]
@@ -2164,9 +2164,9 @@ super-vectorization operational. It can be seen as a special case of the
 %VA = vector.type_cast %A : memref<5x4x3xf32> to memref<vector<5x4x3xf32>>
 ```
 """
-function type_cast(memref::Value; result::IR.Type, location=Location())
+function type_cast(memref; result::IR.Type, location=Location())
     results = IR.Type[result, ]
-    operands = Value[memref, ]
+    operands = API.MlirValue[get_value(memref), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -2281,9 +2281,9 @@ some_synchronization_primitive
 // Execute in parallel on all threads/lanes.
 ```
 """
-function warp_execute_on_lane_0(laneid::Value, args::Vector{Value}; results::Vector{IR.Type}, warp_size, warpRegion::Region, location=Location())
+function warp_execute_on_lane_0(laneid, args; results::Vector{IR.Type}, warp_size, warpRegion::Region, location=Location())
     results = IR.Type[results..., ]
-    operands = Value[laneid, args..., ]
+    operands = API.MlirValue[get_value(laneid), get_value.(args)..., ]
     owned_regions = Region[warpRegion, ]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("warp_size", warp_size), ]
@@ -2307,9 +2307,9 @@ parent operation\'s results.
 If the parent operation defines no value the vector.yield may be omitted
 when printing the region.
 """
-function yield(operands::Vector{Value}; location=Location())
+function yield(operands; location=Location())
     results = IR.Type[]
-    operands = Value[operands..., ]
+    operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]

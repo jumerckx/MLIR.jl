@@ -1,6 +1,6 @@
 module nvgpu
 
-import ...IR: IR, NamedAttribute, Value, Location, Block, Region, Attribute, create_operation, context, IndexType
+import ...IR: IR, NamedAttribute, get_value, Location, Block, Region, Attribute, create_operation, context, IndexType
 import ..Dialects: namedattribute, operandsegmentsizes
 import ...API
 
@@ -55,13 +55,13 @@ nvgpu.device_async_wait %token2
   memref<4x5xf32> to memref<2x7x5xf32, 3>
 ```
 """
-function device_async_copy(dst::Value, dstIndices::Vector{Value}, src::Value, srcIndices::Vector{Value}, srcElements=nothing::Union{Nothing, Value}; asyncToken::IR.Type, dstElements, bypassL1=nothing, location=Location())
+function device_async_copy(dst, dstIndices, src, srcIndices, srcElements=nothing; asyncToken::IR.Type, dstElements, bypassL1=nothing, location=Location())
     results = IR.Type[asyncToken, ]
-    operands = Value[dst, dstIndices..., src, srcIndices..., ]
+    operands = API.MlirValue[get_value(dst), get_value.(dstIndices)..., get_value(src), get_value.(srcIndices)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dstElements", dstElements), ]
-    !isnothing(srcElements) && push!(operands, srcElements)
+    (srcElements != nothing) && push!(operands, get_value(srcElements))
     push!(attributes, operandsegmentsizes([1, length(dstIndices), 1, length(srcIndices), (srcElements==nothing) ? 0 : 1]))
     !isnothing(bypassL1) && push!(attributes, namedattribute("bypassL1", bypassL1))
     
@@ -93,9 +93,9 @@ Groups are executed in the order they are created.
 %0 = nvgpu.device_async_create_group
   ```
 """
-function device_async_create_group(inputTokens::Vector{Value}; asyncToken::IR.Type, location=Location())
+function device_async_create_group(inputTokens; asyncToken::IR.Type, location=Location())
     results = IR.Type[asyncToken, ]
-    operands = Value[inputTokens..., ]
+    operands = API.MlirValue[get_value.(inputTokens)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -126,9 +126,9 @@ completed).
 nvgpu.device_async_wait %0
 ```
 """
-function device_async_wait(asyncDependencies::Value; numGroups=nothing, location=Location())
+function device_async_wait(asyncDependencies; numGroups=nothing, location=Location())
     results = IR.Type[]
-    operands = Value[asyncDependencies, ]
+    operands = API.MlirValue[get_value(asyncDependencies), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -160,9 +160,9 @@ https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#warp-level-mat
   memref<?x?xf16, 3> -> vector<4x2xf16>
 ```
 """
-function ldmatrix(srcMemref::Value, indices::Vector{Value}; res::IR.Type, transpose, numTiles, location=Location())
+function ldmatrix(srcMemref, indices; res::IR.Type, transpose, numTiles, location=Location())
     results = IR.Type[res, ]
-    operands = Value[srcMemref, indices..., ]
+    operands = API.MlirValue[get_value(srcMemref), get_value.(indices)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("transpose", transpose), namedattribute("numTiles", numTiles), ]
@@ -192,13 +192,13 @@ The `\$txCount` specifies the number of element to the expect-tx operation.
   nvgpu.mbarrier.arrive.expect_tx %barrier, %ic0 : !nvgpu.mbarrier.barrier<memorySpace = #gpu.address_space<workgroup>>
 ```
 """
-function mbarrier_arrive_expect_tx(barriers::Value, txcount::Value, mbarId::Value, predicate=nothing::Union{Nothing, Value}; location=Location())
+function mbarrier_arrive_expect_tx(barriers, txcount, mbarId, predicate=nothing; location=Location())
     results = IR.Type[]
-    operands = Value[barriers, txcount, mbarId, ]
+    operands = API.MlirValue[get_value(barriers), get_value(txcount), get_value(mbarId), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(predicate) && push!(operands, predicate)
+    (predicate != nothing) && push!(operands, get_value(predicate))
     
     create_operation(
         "nvgpu.mbarrier.arrive.expect_tx", location;
@@ -221,9 +221,9 @@ The Op does not cause the `nvgpu.mbarrier` to complete its current phase.
   %token = nvgpu.mbarrier.arrive.noComplete %barrier, %count : !nvgpu.mbarrier.barrier<memorySpace = #gpu.address_space<workgroup>> -> !nvgpu.mbarrier.token
 ```
 """
-function mbarrier_arrive_nocomplete(barriers::Value, mbarId::Value, count::Value; token::IR.Type, location=Location())
+function mbarrier_arrive_nocomplete(barriers, mbarId, count; token::IR.Type, location=Location())
     results = IR.Type[token, ]
-    operands = Value[barriers, mbarId, count, ]
+    operands = API.MlirValue[get_value(barriers), get_value(mbarId), get_value(count), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -250,9 +250,9 @@ https://docs.nvidia.com/cuda/parallel-thread-execution/#arrive-on-operation-on-m
   %token = nvgpu.mbarrier.arrive %barrier : !nvgpu.mbarrier.barrier<memorySpace = #gpu.address_space<workgroup>> -> !nvgpu.mbarrier.token
 ```
 """
-function mbarrier_arrive(barriers::Value, mbarId::Value; token::IR.Type, location=Location())
+function mbarrier_arrive(barriers, mbarId; token::IR.Type, location=Location())
     results = IR.Type[token, ]
-    operands = Value[barriers, mbarId, ]
+    operands = API.MlirValue[get_value(barriers), get_value(mbarId), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -281,7 +281,7 @@ The `mbarrier` object has the following type and alignment requirements:
 """
 function mbarrier_create(; barriers::IR.Type, location=Location())
     results = IR.Type[barriers, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -306,13 +306,13 @@ The Op initializes the `mbarrier` object with the given number of threads.
   nvgpu.mbarrier.init %barrier, %num_threads : !nvgpu.mbarrier.barrier<memorySpace = #gpu.address_space<workgroup>>
 ```
 """
-function mbarrier_init(barriers::Value, count::Value, mbarId::Value, predicate=nothing::Union{Nothing, Value}; location=Location())
+function mbarrier_init(barriers, count, mbarId, predicate=nothing; location=Location())
     results = IR.Type[]
-    operands = Value[barriers, count, mbarId, ]
+    operands = API.MlirValue[get_value(barriers), get_value(count), get_value(mbarId), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(predicate) && push!(operands, predicate)
+    (predicate != nothing) && push!(operands, get_value(predicate))
     
     create_operation(
         "nvgpu.mbarrier.init", location;
@@ -333,9 +333,9 @@ non-blocking instruction which tests for the completion of the phase.
   %isComplete = nvgpu.mbarrier.test.wait %barrier, %token : !nvgpu.mbarrier.barrier<memorySpace = #gpu.address_space<workgroup>>, !nvgpu.mbarrier.token
 ```
 """
-function mbarrier_test_wait(barriers::Value, token::Value, mbarId::Value; waitComplete::IR.Type, location=Location())
+function mbarrier_test_wait(barriers, token, mbarId; waitComplete::IR.Type, location=Location())
     results = IR.Type[waitComplete, ]
-    operands = Value[barriers, token, mbarId, ]
+    operands = API.MlirValue[get_value(barriers), get_value(token), get_value(mbarId), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -364,9 +364,9 @@ wait.
   nvgpu.mbarrier.try_wait.parity %barrier, %phaseParity, %ticks : !nvgpu.mbarrier.barrier<memorySpace = #gpu.address_space<workgroup>>
 ```
 """
-function mbarrier_try_wait_parity(barriers::Value, phaseParity::Value, ticks::Value, mbarId::Value; location=Location())
+function mbarrier_try_wait_parity(barriers, phaseParity, ticks, mbarId; location=Location())
     results = IR.Type[]
-    operands = Value[barriers, phaseParity, ticks, mbarId, ]
+    operands = API.MlirValue[get_value(barriers), get_value(phaseParity), get_value(ticks), get_value(mbarId), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -403,9 +403,9 @@ nvgpu.mma.sp.sync (%a, %b, %c) metadata (%meta) {mmaShape = [16, 8, 32]} :
   (vector<4x2xf16>, vector<2x2xf16>, vector<2x2xf16>) -> vector<2x2xf16>
 ```
 """
-function mma_sp_sync(matrixA::Value, matrixB::Value, matrixC::Value, sparseMetadata::Value; res::IR.Type, mmaShape, sparsitySelector=nothing, tf32Enabled=nothing, location=Location())
+function mma_sp_sync(matrixA, matrixB, matrixC, sparseMetadata; res::IR.Type, mmaShape, sparsitySelector=nothing, tf32Enabled=nothing, location=Location())
     results = IR.Type[res, ]
-    operands = Value[matrixA, matrixB, matrixC, sparseMetadata, ]
+    operands = API.MlirValue[get_value(matrixA), get_value(matrixB), get_value(matrixC), get_value(sparseMetadata), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mmaShape", mmaShape), ]
@@ -442,9 +442,9 @@ This operation is meant to follow the semantic of described here:
     (vector<4x2xf16>, vector<2x2xf16>, vector<2x2xf32>) -> vector<2x2xf32>
 ```
 """
-function mma_sync(matrixA::Value, matrixB::Value, matrixC::Value; res::IR.Type, mmaShape, tf32Enabled=nothing, location=Location())
+function mma_sync(matrixA, matrixB, matrixC; res::IR.Type, mmaShape, tf32Enabled=nothing, location=Location())
     results = IR.Type[res, ]
-    operands = Value[matrixA, matrixB, matrixC, ]
+    operands = API.MlirValue[get_value(matrixA), get_value(matrixB), get_value(matrixC), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[namedattribute("mmaShape", mmaShape), ]
@@ -469,14 +469,14 @@ tile shape. The descriptor is created by `nvgpu.tma.create.descriptor`
 
 The Op uses `\$barrier` mbarrier based completion mechanism.
 """
-function tma_async_load(dst::Value, barriers::Value, tensorMapDescriptor::Value, coordinates::Vector{Value}, mbarId::Value, multicastMask=nothing::Union{Nothing, Value}; predicate=nothing::Union{Nothing, Value}, location=Location())
+function tma_async_load(dst, barriers, tensorMapDescriptor, coordinates, mbarId, multicastMask=nothing; predicate=nothing, location=Location())
     results = IR.Type[]
-    operands = Value[dst, barriers, tensorMapDescriptor, coordinates..., mbarId, ]
+    operands = API.MlirValue[get_value(dst), get_value(barriers), get_value(tensorMapDescriptor), get_value.(coordinates)..., get_value(mbarId), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(multicastMask) && push!(operands, multicastMask)
-    !isnothing(predicate) && push!(operands, predicate)
+    (multicastMask != nothing) && push!(operands, get_value(multicastMask))
+    (predicate != nothing) && push!(operands, get_value(predicate))
     push!(attributes, operandsegmentsizes([1, 1, 1, length(coordinates), 1, (multicastMask==nothing) ? 0 : 1(predicate==nothing) ? 0 : 1]))
     
     create_operation(
@@ -496,13 +496,13 @@ Tensor Memory Access (TMA).
 `\$tensorMapDescriptor` is tensor map descriptor which has information about
 tile shape. The descriptor is created by `nvgpu.tma.create.descriptor`
 """
-function tma_async_store(src::Value, tensorMapDescriptor::Value, coordinates::Vector{Value}, predicate=nothing::Union{Nothing, Value}; location=Location())
+function tma_async_store(src, tensorMapDescriptor, coordinates, predicate=nothing; location=Location())
     results = IR.Type[]
-    operands = Value[src, tensorMapDescriptor, coordinates..., ]
+    operands = API.MlirValue[get_value(src), get_value(tensorMapDescriptor), get_value.(coordinates)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(predicate) && push!(operands, predicate)
+    (predicate != nothing) && push!(operands, get_value(predicate))
     push!(attributes, operandsegmentsizes([1, 1, length(coordinates), (predicate==nothing) ? 0 : 1]))
     
     create_operation(
@@ -527,9 +527,9 @@ The `boxDimensions` is the size of the tiled memory region in each dimension.
 For more information see below:
 https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TENSOR__MEMORY.html
 """
-function tma_create_descriptor(tensor::Value, boxDimensions::Vector{Value}; tensorMap::IR.Type, location=Location())
+function tma_create_descriptor(tensor, boxDimensions; tensorMap::IR.Type, location=Location())
     results = IR.Type[tensorMap, ]
-    operands = Value[tensor, boxDimensions..., ]
+    operands = API.MlirValue[get_value(tensor), get_value.(boxDimensions)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -548,13 +548,13 @@ end
 The Op brings the cache line containing the given `\$tmaDescriptor` for 
 subsequent use by the `tma.async.load` instruction.
 """
-function tma_prefetch_descriptor(tensorMapDescriptor::Value, predicate=nothing::Union{Nothing, Value}; location=Location())
+function tma_prefetch_descriptor(tensorMapDescriptor, predicate=nothing; location=Location())
     results = IR.Type[]
-    operands = Value[tensorMapDescriptor, ]
+    operands = API.MlirValue[get_value(tensorMapDescriptor), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
-    !isnothing(predicate) && push!(operands, predicate)
+    (predicate != nothing) && push!(operands, get_value(predicate))
     
     create_operation(
         "nvgpu.tma.prefetch.descriptor", location;
@@ -574,9 +574,9 @@ accumulate.
 The descriptor specifies the properties of the matrix in shared memory that 
 is a multiplicand in the matrix multiply and accumulate operation.
 """
-function warpgroup_generate_descriptor(tensor::Value, tensorMap::Value; descriptor::IR.Type, location=Location())
+function warpgroup_generate_descriptor(tensor, tensorMap; descriptor::IR.Type, location=Location())
     results = IR.Type[descriptor, ]
-    operands = Value[tensor, tensorMap, ]
+    operands = API.MlirValue[get_value(tensor), get_value(tensorMap), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -597,7 +597,7 @@ This Op generates and initializes the accumulator matrix for
 """
 function warpgroup_mma_init_accumulator(; matrixC::IR.Type, location=Location())
     results = IR.Type[matrixC, ]
-    operands = Value[]
+    operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -640,9 +640,9 @@ surrounds them between `wgmma.fence.aligned` and
              !nvgpu.warpgroup.accumulator<fragmented = vector<64x128xf32>>
 ```
 """
-function warpgroup_mma(descriptorA::Value, descriptorB::Value, matrixC::Value; matrixD::IR.Type, waitGroup=nothing, transposeA=nothing, transposeB=nothing, location=Location())
+function warpgroup_mma(descriptorA, descriptorB, matrixC; matrixD::IR.Type, waitGroup=nothing, transposeA=nothing, transposeB=nothing, location=Location())
     results = IR.Type[matrixD, ]
-    operands = Value[descriptorA, descriptorB, matrixC, ]
+    operands = API.MlirValue[get_value(descriptorA), get_value(descriptorB), get_value(matrixC), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
@@ -669,9 +669,9 @@ in \$matrixD to given memref.
 
 Note that, the op must be run with warp group.
 """
-function warpgroup_mma_store(matrixD::Value, dstMemref::Value; location=Location())
+function warpgroup_mma_store(matrixD, dstMemref; location=Location())
     results = IR.Type[]
-    operands = Value[matrixD, dstMemref, ]
+    operands = API.MlirValue[get_value(matrixD), get_value(dstMemref), ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
