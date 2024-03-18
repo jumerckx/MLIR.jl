@@ -776,7 +776,7 @@ function get_type(value; type_param::IR.Type, elemental=nothing, location=Locati
 end
 
 """
-`include`
+`include_`
 
 The application of this transform operation is equivalent to applying the
 operations contained in the named transform sequence with operands being
@@ -795,7 +795,7 @@ immediately regardless of the mode. The objects associated with the results
 of this operation are the same as those associated with the operands of the
 `transform.yield` in the referenced named sequence.
 """
-function include(operands; results::Vector{IR.Type}, target, failure_propagation_mode, location=Location())
+function include_(operands; results::Vector{IR.Type}, target, failure_propagation_mode, location=Location())
     results = IR.Type[results..., ]
     operands = API.MlirValue[get_value.(operands)..., ]
     owned_regions = Region[]

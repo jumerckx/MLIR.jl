@@ -9,7 +9,8 @@ using CEnum
 import ..LLVM
 using MLIR_jll
 let
-    ver = string(LLVM.version().major)
+    # ver = string(LLVM.version().major)
+    ver = "18"
     dir = joinpath(@__DIR__, "API", ver)
     if !isdir(dir)
         error("""The MLIR API bindings for v$ver do not exist.

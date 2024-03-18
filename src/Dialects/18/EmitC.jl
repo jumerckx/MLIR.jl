@@ -790,7 +790,7 @@ function if_(condition; thenRegion::Region, elseRegion::Region, location=Locatio
 end
 
 """
-`include`
+`include_`
 
 The `include` operation allows to define a source file inclusion via the
 `#include` directive.
@@ -811,12 +811,12 @@ emitc.include \"myheader.h\"
 \"emitc.include\" (){include = \"myheader.h\"} : () -> ()
 ```
 """
-function include(; include, is_standard_include=nothing, location=Location())
+function include_(; include_, is_standard_include=nothing, location=Location())
     results = IR.Type[]
     operands = API.MlirValue[]
     owned_regions = Region[]
     successors = Block[]
-    attributes = NamedAttribute[namedattribute("include", include), ]
+    attributes = NamedAttribute[namedattribute("include", include_), ]
     !isnothing(is_standard_include) && push!(attributes, namedattribute("is_standard_include", is_standard_include))
     
     create_operation(
@@ -1193,7 +1193,7 @@ end
 `verbatim`
 
 The `verbatim` operation produces no results and the value is emitted as is
-followed by a line break  (\'\n\' character) during translation.
+followed by a line break  (\'\\n\' character) during translation.
 
 Note: Use with caution. This operation can have arbitrary effects on the
 semantics of the emitted code. Use semantically more meaningful operations

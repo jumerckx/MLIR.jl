@@ -919,7 +919,7 @@ This operation is used to get the `accPtr` for a variable. This is often
 used in conjunction with data exit operations when the data entry
 operation is not visible. This operation can have a `dataClause` argument
 that is any of the valid `mlir::acc::DataClause` entries.
-\
+\\
     
     Description of arguments:
     - `varPtr`: The address of variable to copy.

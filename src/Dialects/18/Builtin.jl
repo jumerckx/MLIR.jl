@@ -24,7 +24,7 @@ module {
 }
 ```
 """
-function module_(; sym_name=nothing, sym_visibility=nothing, bodyRegion::Region, location=Location())
+function module_(; sym_name=nothing, sym_visibility=nothing, bodyRegion::Region, location=Location(), additional_attributes=NamedAttribute[])
     results = IR.Type[]
     operands = API.MlirValue[]
     owned_regions = Region[bodyRegion, ]
@@ -32,6 +32,7 @@ function module_(; sym_name=nothing, sym_visibility=nothing, bodyRegion::Region,
     attributes = NamedAttribute[]
     !isnothing(sym_name) && push!(attributes, namedattribute("sym_name", sym_name))
     !isnothing(sym_visibility) && push!(attributes, namedattribute("sym_visibility", sym_visibility))
+    push!(attributes, additional_attributes...)
     
     create_operation(
         "builtin.module", location;

@@ -678,7 +678,7 @@ tiled by 16 and the 0th dimension is tiled by 32.
 // NC to NCnc
 %0 = tensor.pack %source inner_dims_pos = [0, 1] inner_tiles = [8, 32]
     into %dest : tensor<128x256xf32> -> tensor<16x8 x 8x32 xf32>
-//                                             \  /   \  /
+//                                             \\  /   \\  /
 //                                       outer dims  inner dims
 ```
 
@@ -691,7 +691,7 @@ dimensions. If specified, it must have `n` elements.
 %0 = tensor.pack %source outer_dims_perm = [1, 0] inner_dims_pos = [0, 1]
     inner_tiles = [8, 32] into %dest
     : tensor<128x256xf32> -> tensor<8x16 x 8x32 xf32>
-//                                  \  /
+//                                  \\  /
 //            compare with \"NC to NCnc\": outer dims are transposed
 ```
 
@@ -706,7 +706,7 @@ divisible dimensions. Padding is optional:
 %0 = tensor.pack %arg0 padding_value(%pad : f32) outer_dims_perm = [2, 1, 0]
     inner_dims_pos = [1] inner_tiles = [2] into %arg1
     : tensor<200x127x256xf32> -> tensor<256x64x200x2xf32>
-//                 \
+//                 \\
 //                padded and tiled dim
 //
 // Source dimension 1 is tiled. 64 does not divide 127 evenly, so 1 padded

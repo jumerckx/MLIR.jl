@@ -14,7 +14,8 @@ end
 operandsegmentsizes(segments) = namedattribute("operand_segment_sizes", Attribute(Int32.(segments)))
 
 let
-    ver = string(LLVM.version().major)
+    # ver = string(LLVM.version().major)
+    ver = "18"
     dir = joinpath(@__DIR__, "Dialects", ver)
     if !isdir(dir)
         error("""The MLIR dialect bindings for v$ver do not exist.
