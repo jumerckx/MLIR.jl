@@ -114,8 +114,8 @@ function mlir_dialects(version::VersionNumber)
     if version >= v"17"
         append!(dialects, [
             # ("arm_sme", "ArmSME.jl", ["ArmSME/IR/ArmSME.td"]),
-            # ("irdl", "IRDL.jl", ["IRDL/IR/IRDLOps.td"]),
-            # ("ub", "UB.jl", ["UB/IR/UBOps.td"]),
+            ("irdl", "IRDL.jl", ["IRDL/IR/IRDLOps.td"]),
+            ("ub", "UB.jl", ["UB/IR/UBOps.td"]),
             ("transform", "Transform.jl", [
                 "Transform/IR/TransformOps.td",
                 "Affine/TransformOps/AffineTransformOps.td",

@@ -7881,6 +7881,10 @@ function mlirTranslateModuleToLLVMIR(_module, context)
     @ccall mlir_c.mlirTranslateModuleToLLVMIR(_module::MlirOperation, context::LLVMContextRef)::LLVMModuleRef
 end
 
+function mlirSerializeGPUModuleOp(op)
+    @ccall mlir_c.mlirSerializeGPUModuleOp(op::MlirOperation)::MlirStringRef
+end
+
 function mlirRegisterTransformsPasses()
     @ccall mlir_c.mlirRegisterTransformsPasses()::Cvoid
 end

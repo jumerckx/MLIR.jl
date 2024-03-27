@@ -1,0 +1,6 @@
+[MLIR_jll]
+mlir_c_path = "/home/jumerckx/masterthesis/llvm-project/llvm/install/relwithdebinfo/lib/libMLIR-C.so"
+
+[mlir_jl_tblgen_jll]
+mlir_jl_tblgen = "/home/jumerckx/.julia/scratchspaces/bfde9dd4-8f40-4a1e-be09-1475335e1c92/build/bin/mlir-jl-tblgen"
+mlir_jl_tblgen_path = "/home/jumerckx/.julia/scratchspaces/bfde9dd4-8f40-4a1e-be09-1475335e1c92/build/bin/mlir-jl-tblgen"

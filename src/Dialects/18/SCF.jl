@@ -804,9 +804,9 @@ left out in the custom syntax and the builders will insert one implicitly.
 Otherwise, it has to be present in the syntax to indicate which values are
 yielded.
 """
-function yield(results; location=Location())
+function yield(results_; location=Location())
     results = IR.Type[]
-    operands = API.MlirValue[get_value.(results)..., ]
+    operands = API.MlirValue[get_value.(results_)..., ]
     owned_regions = Region[]
     successors = Block[]
     attributes = NamedAttribute[]
