@@ -292,7 +292,7 @@ end
         }
         if (named_operand.isOptional())
         {
-          operandsegmentsizes += "(" + operandname + "==nothing) ? 0 : 1";
+          operandsegmentsizes += "(" + operandname + "==nothing) ? 0 : 1, ";
           continue;
         }
         operandsegmentsizes += named_operand.isVariadic() ? "length(" + operandname + "), " : "1, ";
