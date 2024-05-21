@@ -1064,7 +1064,7 @@ function launch_func(asyncDependencies, gridSizeX, gridSizeY, gridSizeZ, blockSi
     (clusterSizeZ != nothing) && push!(operands, get_value(clusterSizeZ))
     (dynamicSharedMemorySize != nothing) && push!(operands, get_value(dynamicSharedMemorySize))
     (asyncObject != nothing) && push!(operands, get_value(asyncObject))
-    push!(attributes, operandsegmentsizes([length(asyncDependencies), 1, 1, 1, 1, 1, 1, (clusterSizeX==nothing) ? 0 : 1(clusterSizeY==nothing) ? 0 : 1(clusterSizeZ==nothing) ? 0 : 1(dynamicSharedMemorySize==nothing) ? 0 : 1length(kernelOperands), (asyncObject==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([length(asyncDependencies), 1, 1, 1, 1, 1, 1, (clusterSizeX==nothing) ? 0 : 1, (clusterSizeY==nothing) ? 0 : 1, (clusterSizeZ==nothing) ? 0 : 1, (dynamicSharedMemorySize==nothing) ? 0 : 1, length(kernelOperands), (asyncObject==nothing) ? 0 : 1, ]))
     !isnothing(asyncToken) && push!(results, asyncToken)
     
     create_operation(
@@ -1190,7 +1190,7 @@ function launch(asyncDependencies, gridSizeX, gridSizeY, gridSizeZ, blockSizeX, 
     (clusterSizeY != nothing) && push!(operands, get_value(clusterSizeY))
     (clusterSizeZ != nothing) && push!(operands, get_value(clusterSizeZ))
     (dynamicSharedMemorySize != nothing) && push!(operands, get_value(dynamicSharedMemorySize))
-    push!(attributes, operandsegmentsizes([length(asyncDependencies), 1, 1, 1, 1, 1, 1, (clusterSizeX==nothing) ? 0 : 1(clusterSizeY==nothing) ? 0 : 1(clusterSizeZ==nothing) ? 0 : 1(dynamicSharedMemorySize==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([length(asyncDependencies), 1, 1, 1, 1, 1, 1, (clusterSizeX==nothing) ? 0 : 1, (clusterSizeY==nothing) ? 0 : 1, (clusterSizeZ==nothing) ? 0 : 1, (dynamicSharedMemorySize==nothing) ? 0 : 1, ]))
     !isnothing(asyncToken) && push!(results, asyncToken)
     
     create_operation(

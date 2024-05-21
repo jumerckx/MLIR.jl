@@ -722,7 +722,7 @@ function pack(source, dest, padding_value=nothing; inner_tiles, result=nothing::
     successors = Block[]
     attributes = NamedAttribute[namedattribute("inner_dims_pos", inner_dims_pos), namedattribute("static_inner_tiles", static_inner_tiles), ]
     (padding_value != nothing) && push!(operands, get_value(padding_value))
-    push!(attributes, operandsegmentsizes([1, 1, (padding_value==nothing) ? 0 : 1length(inner_tiles), ]))
+    push!(attributes, operandsegmentsizes([1, 1, (padding_value==nothing) ? 0 : 1, length(inner_tiles), ]))
     !isnothing(result) && push!(results, result)
     !isnothing(outer_dims_perm) && push!(attributes, namedattribute("outer_dims_perm", outer_dims_perm))
     

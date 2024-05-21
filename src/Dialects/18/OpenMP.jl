@@ -361,7 +361,7 @@ function bounds(lower_bound=nothing; upper_bound=nothing, extent=nothing, stride
     (extent != nothing) && push!(operands, get_value(extent))
     (stride != nothing) && push!(operands, get_value(stride))
     (start_idx != nothing) && push!(operands, get_value(start_idx))
-    push!(attributes, operandsegmentsizes([(lower_bound==nothing) ? 0 : 1(upper_bound==nothing) ? 0 : 1(extent==nothing) ? 0 : 1(stride==nothing) ? 0 : 1(start_idx==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([(lower_bound==nothing) ? 0 : 1, (upper_bound==nothing) ? 0 : 1, (extent==nothing) ? 0 : 1, (stride==nothing) ? 0 : 1, (start_idx==nothing) ? 0 : 1, ]))
     !isnothing(stride_in_bytes) && push!(attributes, namedattribute("stride_in_bytes", stride_in_bytes))
     
     create_operation(
@@ -405,7 +405,7 @@ function distribute(chunk_size=nothing; allocate_vars, allocators_vars, dist_sch
     successors = Block[]
     attributes = NamedAttribute[]
     (chunk_size != nothing) && push!(operands, get_value(chunk_size))
-    push!(attributes, operandsegmentsizes([(chunk_size==nothing) ? 0 : 1length(allocate_vars), length(allocators_vars), ]))
+    push!(attributes, operandsegmentsizes([(chunk_size==nothing) ? 0 : 1, length(allocate_vars), length(allocators_vars), ]))
     !isnothing(dist_schedule_static) && push!(attributes, namedattribute("dist_schedule_static", dist_schedule_static))
     !isnothing(order_val) && push!(attributes, namedattribute("order_val", order_val))
     
@@ -497,7 +497,7 @@ function map_info(var_ptr, var_ptr_ptr=nothing; members, bounds, omp_ptr::IR.Typ
     successors = Block[]
     attributes = NamedAttribute[namedattribute("var_type", var_type), ]
     (var_ptr_ptr != nothing) && push!(operands, get_value(var_ptr_ptr))
-    push!(attributes, operandsegmentsizes([1, (var_ptr_ptr==nothing) ? 0 : 1length(members), length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (var_ptr_ptr==nothing) ? 0 : 1, length(members), length(bounds), ]))
     !isnothing(map_type) && push!(attributes, namedattribute("map_type", map_type))
     !isnothing(map_capture_type) && push!(attributes, namedattribute("map_capture_type", map_capture_type))
     !isnothing(name) && push!(attributes, namedattribute("name", name))
@@ -636,7 +636,7 @@ function parallel(if_expr_var=nothing; num_threads_var=nothing, allocate_vars, a
     attributes = NamedAttribute[]
     (if_expr_var != nothing) && push!(operands, get_value(if_expr_var))
     (num_threads_var != nothing) && push!(operands, get_value(num_threads_var))
-    push!(attributes, operandsegmentsizes([(if_expr_var==nothing) ? 0 : 1(num_threads_var==nothing) ? 0 : 1length(allocate_vars), length(allocators_vars), length(reduction_vars), length(private_vars), ]))
+    push!(attributes, operandsegmentsizes([(if_expr_var==nothing) ? 0 : 1, (num_threads_var==nothing) ? 0 : 1, length(allocate_vars), length(allocators_vars), length(reduction_vars), length(private_vars), ]))
     !isnothing(reductions) && push!(attributes, namedattribute("reductions", reductions))
     !isnothing(proc_bind_val) && push!(attributes, namedattribute("proc_bind_val", proc_bind_val))
     !isnothing(privatizers) && push!(attributes, namedattribute("privatizers", privatizers))
@@ -900,7 +900,7 @@ function simdloop(lowerBound, upperBound, step, aligned_vars, if_expr=nothing; n
     successors = Block[]
     attributes = NamedAttribute[]
     (if_expr != nothing) && push!(operands, get_value(if_expr))
-    push!(attributes, operandsegmentsizes([length(lowerBound), length(upperBound), length(step), length(aligned_vars), (if_expr==nothing) ? 0 : 1length(nontemporal_vars), ]))
+    push!(attributes, operandsegmentsizes([length(lowerBound), length(upperBound), length(step), length(aligned_vars), (if_expr==nothing) ? 0 : 1, length(nontemporal_vars), ]))
     !isnothing(alignment_values) && push!(attributes, namedattribute("alignment_values", alignment_values))
     !isnothing(order_val) && push!(attributes, namedattribute("order_val", order_val))
     !isnothing(simdlen) && push!(attributes, namedattribute("simdlen", simdlen))
@@ -979,7 +979,7 @@ function target(if_expr=nothing; device=nothing, thread_limit=nothing, depend_va
     (if_expr != nothing) && push!(operands, get_value(if_expr))
     (device != nothing) && push!(operands, get_value(device))
     (thread_limit != nothing) && push!(operands, get_value(thread_limit))
-    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1(device==nothing) ? 0 : 1(thread_limit==nothing) ? 0 : 1length(depend_vars), length(map_operands), ]))
+    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1, (device==nothing) ? 0 : 1, (thread_limit==nothing) ? 0 : 1, length(depend_vars), length(map_operands), ]))
     !isnothing(depends) && push!(attributes, namedattribute("depends", depends))
     !isnothing(nowait) && push!(attributes, namedattribute("nowait", nowait))
     
@@ -1030,7 +1030,7 @@ function target_data(if_expr=nothing; device=nothing, use_device_ptr, use_device
     attributes = NamedAttribute[]
     (if_expr != nothing) && push!(operands, get_value(if_expr))
     (device != nothing) && push!(operands, get_value(device))
-    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1(device==nothing) ? 0 : 1length(use_device_ptr), length(use_device_addr), length(map_operands), ]))
+    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1, (device==nothing) ? 0 : 1, length(use_device_ptr), length(use_device_addr), length(map_operands), ]))
     
     create_operation(
         "omp.target_data", location;
@@ -1076,7 +1076,7 @@ function target_enter_data(if_expr=nothing; device=nothing, depend_vars, map_ope
     attributes = NamedAttribute[]
     (if_expr != nothing) && push!(operands, get_value(if_expr))
     (device != nothing) && push!(operands, get_value(device))
-    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1(device==nothing) ? 0 : 1length(depend_vars), length(map_operands), ]))
+    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1, (device==nothing) ? 0 : 1, length(depend_vars), length(map_operands), ]))
     !isnothing(depends) && push!(attributes, namedattribute("depends", depends))
     !isnothing(nowait) && push!(attributes, namedattribute("nowait", nowait))
     
@@ -1124,7 +1124,7 @@ function target_exit_data(if_expr=nothing; device=nothing, depend_vars, map_oper
     attributes = NamedAttribute[]
     (if_expr != nothing) && push!(operands, get_value(if_expr))
     (device != nothing) && push!(operands, get_value(device))
-    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1(device==nothing) ? 0 : 1length(depend_vars), length(map_operands), ]))
+    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1, (device==nothing) ? 0 : 1, length(depend_vars), length(map_operands), ]))
     !isnothing(depends) && push!(attributes, namedattribute("depends", depends))
     !isnothing(nowait) && push!(attributes, namedattribute("nowait", nowait))
     
@@ -1174,7 +1174,7 @@ function target_update_data(if_expr=nothing; device=nothing, depend_vars, map_op
     attributes = NamedAttribute[]
     (if_expr != nothing) && push!(operands, get_value(if_expr))
     (device != nothing) && push!(operands, get_value(device))
-    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1(device==nothing) ? 0 : 1length(depend_vars), length(map_operands), ]))
+    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1, (device==nothing) ? 0 : 1, length(depend_vars), length(map_operands), ]))
     !isnothing(depends) && push!(attributes, namedattribute("depends", depends))
     !isnothing(nowait) && push!(attributes, namedattribute("nowait", nowait))
     
@@ -1336,7 +1336,7 @@ function taskloop(lowerBound, upperBound, step, if_expr=nothing; final_expr=noth
     (priority != nothing) && push!(operands, get_value(priority))
     (grain_size != nothing) && push!(operands, get_value(grain_size))
     (num_tasks != nothing) && push!(operands, get_value(num_tasks))
-    push!(attributes, operandsegmentsizes([length(lowerBound), length(upperBound), length(step), (if_expr==nothing) ? 0 : 1(final_expr==nothing) ? 0 : 1length(in_reduction_vars), length(reduction_vars), (priority==nothing) ? 0 : 1length(allocate_vars), length(allocators_vars), (grain_size==nothing) ? 0 : 1(num_tasks==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([length(lowerBound), length(upperBound), length(step), (if_expr==nothing) ? 0 : 1, (final_expr==nothing) ? 0 : 1, length(in_reduction_vars), length(reduction_vars), (priority==nothing) ? 0 : 1, length(allocate_vars), length(allocators_vars), (grain_size==nothing) ? 0 : 1, (num_tasks==nothing) ? 0 : 1, ]))
     !isnothing(inclusive) && push!(attributes, namedattribute("inclusive", inclusive))
     !isnothing(untied) && push!(attributes, namedattribute("untied", untied))
     !isnothing(mergeable) && push!(attributes, namedattribute("mergeable", mergeable))
@@ -1407,7 +1407,7 @@ function task(if_expr=nothing; final_expr=nothing, in_reduction_vars, priority=n
     (if_expr != nothing) && push!(operands, get_value(if_expr))
     (final_expr != nothing) && push!(operands, get_value(final_expr))
     (priority != nothing) && push!(operands, get_value(priority))
-    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1(final_expr==nothing) ? 0 : 1length(in_reduction_vars), (priority==nothing) ? 0 : 1length(depend_vars), length(allocate_vars), length(allocators_vars), ]))
+    push!(attributes, operandsegmentsizes([(if_expr==nothing) ? 0 : 1, (final_expr==nothing) ? 0 : 1, length(in_reduction_vars), (priority==nothing) ? 0 : 1, length(depend_vars), length(allocate_vars), length(allocators_vars), ]))
     !isnothing(untied) && push!(attributes, namedattribute("untied", untied))
     !isnothing(mergeable) && push!(attributes, namedattribute("mergeable", mergeable))
     !isnothing(in_reductions) && push!(attributes, namedattribute("in_reductions", in_reductions))
@@ -1495,7 +1495,7 @@ function teams(num_teams_lower=nothing; num_teams_upper=nothing, if_expr=nothing
     (num_teams_upper != nothing) && push!(operands, get_value(num_teams_upper))
     (if_expr != nothing) && push!(operands, get_value(if_expr))
     (thread_limit != nothing) && push!(operands, get_value(thread_limit))
-    push!(attributes, operandsegmentsizes([(num_teams_lower==nothing) ? 0 : 1(num_teams_upper==nothing) ? 0 : 1(if_expr==nothing) ? 0 : 1(thread_limit==nothing) ? 0 : 1length(allocate_vars), length(allocators_vars), length(reduction_vars), ]))
+    push!(attributes, operandsegmentsizes([(num_teams_lower==nothing) ? 0 : 1, (num_teams_upper==nothing) ? 0 : 1, (if_expr==nothing) ? 0 : 1, (thread_limit==nothing) ? 0 : 1, length(allocate_vars), length(allocators_vars), length(reduction_vars), ]))
     !isnothing(reductions) && push!(attributes, namedattribute("reductions", reductions))
     
     create_operation(
@@ -1631,7 +1631,7 @@ function wsloop(lowerBound, upperBound, step, linear_vars, linear_step_vars, red
     successors = Block[]
     attributes = NamedAttribute[]
     (schedule_chunk_var != nothing) && push!(operands, get_value(schedule_chunk_var))
-    push!(attributes, operandsegmentsizes([length(lowerBound), length(upperBound), length(step), length(linear_vars), length(linear_step_vars), length(reduction_vars), (schedule_chunk_var==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([length(lowerBound), length(upperBound), length(step), length(linear_vars), length(linear_step_vars), length(reduction_vars), (schedule_chunk_var==nothing) ? 0 : 1, ]))
     !isnothing(reductions) && push!(attributes, namedattribute("reductions", reductions))
     !isnothing(schedule_val) && push!(attributes, namedattribute("schedule_val", schedule_val))
     !isnothing(schedule_modifier) && push!(attributes, namedattribute("schedule_modifier", schedule_modifier))

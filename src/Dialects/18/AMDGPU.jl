@@ -171,7 +171,7 @@ function packed_trunc_2xfp8(sourceA, sourceB=nothing; existing=nothing, res::IR.
     attributes = NamedAttribute[namedattribute("wordIndex", wordIndex), ]
     (sourceB != nothing) && push!(operands, get_value(sourceB))
     (existing != nothing) && push!(operands, get_value(existing))
-    push!(attributes, operandsegmentsizes([1, (sourceB==nothing) ? 0 : 1(existing==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, (sourceB==nothing) ? 0 : 1, (existing==nothing) ? 0 : 1, ]))
     
     create_operation(
         "amdgpu.packed_trunc_2xfp8", location;
@@ -207,7 +207,7 @@ function raw_buffer_atomic_cmpswap(src, cmp, memref, indices, sgprOffset=nothing
     successors = Block[]
     attributes = NamedAttribute[]
     (sgprOffset != nothing) && push!(operands, get_value(sgprOffset))
-    push!(attributes, operandsegmentsizes([1, 1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1, ]))
     !isnothing(boundsCheck) && push!(attributes, namedattribute("boundsCheck", boundsCheck))
     !isnothing(indexOffset) && push!(attributes, namedattribute("indexOffset", indexOffset))
     
@@ -246,7 +246,7 @@ function raw_buffer_atomic_fadd(value, memref, indices, sgprOffset=nothing; boun
     successors = Block[]
     attributes = NamedAttribute[]
     (sgprOffset != nothing) && push!(operands, get_value(sgprOffset))
-    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1, ]))
     !isnothing(boundsCheck) && push!(attributes, namedattribute("boundsCheck", boundsCheck))
     !isnothing(indexOffset) && push!(attributes, namedattribute("indexOffset", indexOffset))
     
@@ -284,7 +284,7 @@ function raw_buffer_atomic_fmax(value, memref, indices, sgprOffset=nothing; boun
     successors = Block[]
     attributes = NamedAttribute[]
     (sgprOffset != nothing) && push!(operands, get_value(sgprOffset))
-    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1, ]))
     !isnothing(boundsCheck) && push!(attributes, namedattribute("boundsCheck", boundsCheck))
     !isnothing(indexOffset) && push!(attributes, namedattribute("indexOffset", indexOffset))
     
@@ -322,7 +322,7 @@ function raw_buffer_atomic_smax(value, memref, indices, sgprOffset=nothing; boun
     successors = Block[]
     attributes = NamedAttribute[]
     (sgprOffset != nothing) && push!(operands, get_value(sgprOffset))
-    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1, ]))
     !isnothing(boundsCheck) && push!(attributes, namedattribute("boundsCheck", boundsCheck))
     !isnothing(indexOffset) && push!(attributes, namedattribute("indexOffset", indexOffset))
     
@@ -360,7 +360,7 @@ function raw_buffer_atomic_umin(value, memref, indices, sgprOffset=nothing; boun
     successors = Block[]
     attributes = NamedAttribute[]
     (sgprOffset != nothing) && push!(operands, get_value(sgprOffset))
-    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1, ]))
     !isnothing(boundsCheck) && push!(attributes, namedattribute("boundsCheck", boundsCheck))
     !isnothing(indexOffset) && push!(attributes, namedattribute("indexOffset", indexOffset))
     
@@ -411,7 +411,7 @@ function raw_buffer_load(memref, indices, sgprOffset=nothing; value::IR.Type, bo
     successors = Block[]
     attributes = NamedAttribute[]
     (sgprOffset != nothing) && push!(operands, get_value(sgprOffset))
-    push!(attributes, operandsegmentsizes([1, length(indices), (sgprOffset==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, length(indices), (sgprOffset==nothing) ? 0 : 1, ]))
     !isnothing(boundsCheck) && push!(attributes, namedattribute("boundsCheck", boundsCheck))
     !isnothing(indexOffset) && push!(attributes, namedattribute("indexOffset", indexOffset))
     
@@ -450,7 +450,7 @@ function raw_buffer_store(value, memref, indices, sgprOffset=nothing; boundsChec
     successors = Block[]
     attributes = NamedAttribute[]
     (sgprOffset != nothing) && push!(operands, get_value(sgprOffset))
-    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, length(indices), (sgprOffset==nothing) ? 0 : 1, ]))
     !isnothing(boundsCheck) && push!(attributes, namedattribute("boundsCheck", boundsCheck))
     !isnothing(indexOffset) && push!(attributes, namedattribute("indexOffset", indexOffset))
     

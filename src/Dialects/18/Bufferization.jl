@@ -67,7 +67,7 @@ function alloc_tensor(dynamic_sizes, copy=nothing; size_hint=nothing, result::IR
     attributes = NamedAttribute[]
     (copy != nothing) && push!(operands, get_value(copy))
     (size_hint != nothing) && push!(operands, get_value(size_hint))
-    push!(attributes, operandsegmentsizes([length(dynamic_sizes), (copy==nothing) ? 0 : 1(size_hint==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([length(dynamic_sizes), (copy==nothing) ? 0 : 1, (size_hint==nothing) ? 0 : 1, ]))
     !isnothing(memory_space) && push!(attributes, namedattribute("memory_space", memory_space))
     
     create_operation(

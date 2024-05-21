@@ -1151,7 +1151,7 @@ function sequence(root=nothing; extra_bindings, results::Vector{IR.Type}, failur
     successors = Block[]
     attributes = NamedAttribute[namedattribute("failure_propagation_mode", failure_propagation_mode), ]
     (root != nothing) && push!(operands, get_value(root))
-    push!(attributes, operandsegmentsizes([(root==nothing) ? 0 : 1length(extra_bindings), ]))
+    push!(attributes, operandsegmentsizes([(root==nothing) ? 0 : 1, length(extra_bindings), ]))
     
     create_operation(
         "transform.sequence", location;
@@ -3617,7 +3617,7 @@ function structured_tile_using_forall(target, num_threads, tile_sizes, packed_nu
     attributes = NamedAttribute[]
     (packed_num_threads != nothing) && push!(operands, get_value(packed_num_threads))
     (packed_tile_sizes != nothing) && push!(operands, get_value(packed_tile_sizes))
-    push!(attributes, operandsegmentsizes([1, length(num_threads), length(tile_sizes), (packed_num_threads==nothing) ? 0 : 1(packed_tile_sizes==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, length(num_threads), length(tile_sizes), (packed_num_threads==nothing) ? 0 : 1, (packed_tile_sizes==nothing) ? 0 : 1, ]))
     !isnothing(static_num_threads) && push!(attributes, namedattribute("static_num_threads", static_num_threads))
     !isnothing(static_tile_sizes) && push!(attributes, namedattribute("static_tile_sizes", static_tile_sizes))
     !isnothing(mapping) && push!(attributes, namedattribute("mapping", mapping))

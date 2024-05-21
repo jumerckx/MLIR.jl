@@ -452,7 +452,7 @@ function replace(opValue, replOperation=nothing; replValues, location=Location()
     successors = Block[]
     attributes = NamedAttribute[]
     (replOperation != nothing) && push!(operands, get_value(replOperation))
-    push!(attributes, operandsegmentsizes([1, (replOperation==nothing) ? 0 : 1length(replValues), ]))
+    push!(attributes, operandsegmentsizes([1, (replOperation==nothing) ? 0 : 1, length(replValues), ]))
     
     create_operation(
         "pdl.replace", location;
@@ -590,7 +590,7 @@ function rewrite(root=nothing; externalArgs, name=nothing, bodyRegion::Region, l
     successors = Block[]
     attributes = NamedAttribute[]
     (root != nothing) && push!(operands, get_value(root))
-    push!(attributes, operandsegmentsizes([(root==nothing) ? 0 : 1length(externalArgs), ]))
+    push!(attributes, operandsegmentsizes([(root==nothing) ? 0 : 1, length(externalArgs), ]))
     !isnothing(name) && push!(attributes, namedattribute("name", name))
     
     create_operation(

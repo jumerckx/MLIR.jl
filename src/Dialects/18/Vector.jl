@@ -1980,7 +1980,7 @@ function transfer_read(source, indices, padding, mask=nothing; vector::IR.Type, 
     successors = Block[]
     attributes = NamedAttribute[namedattribute("permutation_map", permutation_map), ]
     (mask != nothing) && push!(operands, get_value(mask))
-    push!(attributes, operandsegmentsizes([1, length(indices), 1, (mask==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, length(indices), 1, (mask==nothing) ? 0 : 1, ]))
     !isnothing(in_bounds) && push!(attributes, namedattribute("in_bounds", in_bounds))
     
     create_operation(
@@ -2094,7 +2094,7 @@ function transfer_write(vector, source, indices, mask=nothing; result=nothing::U
     successors = Block[]
     attributes = NamedAttribute[namedattribute("permutation_map", permutation_map), ]
     (mask != nothing) && push!(operands, get_value(mask))
-    push!(attributes, operandsegmentsizes([1, 1, length(indices), (mask==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, length(indices), (mask==nothing) ? 0 : 1, ]))
     !isnothing(result) && push!(results, result)
     !isnothing(in_bounds) && push!(attributes, namedattribute("in_bounds", in_bounds))
     

@@ -163,7 +163,7 @@ function attach(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClause=n
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -206,7 +206,7 @@ function cache(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClause=no
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -249,7 +249,7 @@ function copyin(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClause=n
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -330,7 +330,7 @@ function create(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClause=n
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -392,7 +392,7 @@ function bounds(lowerbound=nothing; upperbound=nothing, extent=nothing, stride=n
     (extent != nothing) && push!(operands, get_value(extent))
     (stride != nothing) && push!(operands, get_value(stride))
     (startIdx != nothing) && push!(operands, get_value(startIdx))
-    push!(attributes, operandsegmentsizes([(lowerbound==nothing) ? 0 : 1(upperbound==nothing) ? 0 : 1(extent==nothing) ? 0 : 1(stride==nothing) ? 0 : 1(startIdx==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([(lowerbound==nothing) ? 0 : 1, (upperbound==nothing) ? 0 : 1, (extent==nothing) ? 0 : 1, (stride==nothing) ? 0 : 1, (startIdx==nothing) ? 0 : 1, ]))
     !isnothing(strideInBytes) && push!(attributes, namedattribute("strideInBytes", strideInBytes))
     
     create_operation(
@@ -432,7 +432,7 @@ function data(ifCond=nothing; asyncOperands, waitOperands, dataClauseOperands, a
     successors = Block[]
     attributes = NamedAttribute[]
     (ifCond != nothing) && push!(operands, get_value(ifCond))
-    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1length(asyncOperands), length(waitOperands), length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1, length(asyncOperands), length(waitOperands), length(dataClauseOperands), ]))
     !isnothing(asyncOperandsDeviceType) && push!(attributes, namedattribute("asyncOperandsDeviceType", asyncOperandsDeviceType))
     !isnothing(asyncOnly) && push!(attributes, namedattribute("asyncOnly", asyncOnly))
     !isnothing(waitOperandsSegments) && push!(attributes, namedattribute("waitOperandsSegments", waitOperandsSegments))
@@ -478,7 +478,7 @@ function declare_device_resident(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.T
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -543,7 +543,7 @@ function declare_exit(token=nothing; dataClauseOperands, location=Location())
     successors = Block[]
     attributes = NamedAttribute[]
     (token != nothing) && push!(operands, get_value(token))
-    push!(attributes, operandsegmentsizes([(token==nothing) ? 0 : 1length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([(token==nothing) ? 0 : 1, length(dataClauseOperands), ]))
     
     create_operation(
         "acc.declare_exit", location;
@@ -582,7 +582,7 @@ function declare_link(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataCl
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -731,7 +731,7 @@ function deviceptr(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClaus
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -765,7 +765,7 @@ function enter_data(ifCond=nothing; asyncOperand=nothing, waitDevnum=nothing, wa
     (ifCond != nothing) && push!(operands, get_value(ifCond))
     (asyncOperand != nothing) && push!(operands, get_value(asyncOperand))
     (waitDevnum != nothing) && push!(operands, get_value(waitDevnum))
-    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1(asyncOperand==nothing) ? 0 : 1(waitDevnum==nothing) ? 0 : 1length(waitOperands), length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1, (asyncOperand==nothing) ? 0 : 1, (waitDevnum==nothing) ? 0 : 1, length(waitOperands), length(dataClauseOperands), ]))
     !isnothing(async) && push!(attributes, namedattribute("async", async))
     !isnothing(wait) && push!(attributes, namedattribute("wait", wait))
     
@@ -797,7 +797,7 @@ function exit_data(ifCond=nothing; asyncOperand=nothing, waitDevnum=nothing, wai
     (ifCond != nothing) && push!(operands, get_value(ifCond))
     (asyncOperand != nothing) && push!(operands, get_value(asyncOperand))
     (waitDevnum != nothing) && push!(operands, get_value(waitDevnum))
-    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1(asyncOperand==nothing) ? 0 : 1(waitDevnum==nothing) ? 0 : 1length(waitOperands), length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1, (asyncOperand==nothing) ? 0 : 1, (waitDevnum==nothing) ? 0 : 1, length(waitOperands), length(dataClauseOperands), ]))
     !isnothing(async) && push!(attributes, namedattribute("async", async))
     !isnothing(wait) && push!(attributes, namedattribute("wait", wait))
     !isnothing(finalize) && push!(attributes, namedattribute("finalize", finalize))
@@ -839,7 +839,7 @@ function firstprivate(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataCl
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -947,7 +947,7 @@ function getdeviceptr(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataCl
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -1055,7 +1055,7 @@ function host_data(ifCond=nothing; dataClauseOperands, ifPresent=nothing, region
     successors = Block[]
     attributes = NamedAttribute[]
     (ifCond != nothing) && push!(operands, get_value(ifCond))
-    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1, length(dataClauseOperands), ]))
     !isnothing(ifPresent) && push!(attributes, namedattribute("ifPresent", ifPresent))
     
     create_operation(
@@ -1087,7 +1087,7 @@ function init(deviceNumOperand=nothing; ifCond=nothing, device_types=nothing, lo
     attributes = NamedAttribute[]
     (deviceNumOperand != nothing) && push!(operands, get_value(deviceNumOperand))
     (ifCond != nothing) && push!(operands, get_value(ifCond))
-    push!(attributes, operandsegmentsizes([(deviceNumOperand==nothing) ? 0 : 1(ifCond==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([(deviceNumOperand==nothing) ? 0 : 1, (ifCond==nothing) ? 0 : 1, ]))
     !isnothing(device_types) && push!(attributes, namedattribute("device_types", device_types))
     
     create_operation(
@@ -1127,7 +1127,7 @@ function kernels(asyncOperands, waitOperands, numGangs, numWorkers, vectorLength
     attributes = NamedAttribute[]
     (ifCond != nothing) && push!(operands, get_value(ifCond))
     (selfCond != nothing) && push!(operands, get_value(selfCond))
-    push!(attributes, operandsegmentsizes([length(asyncOperands), length(waitOperands), length(numGangs), length(numWorkers), length(vectorLength), (ifCond==nothing) ? 0 : 1(selfCond==nothing) ? 0 : 1length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([length(asyncOperands), length(waitOperands), length(numGangs), length(numWorkers), length(vectorLength), (ifCond==nothing) ? 0 : 1, (selfCond==nothing) ? 0 : 1, length(dataClauseOperands), ]))
     !isnothing(asyncOperandsDeviceType) && push!(attributes, namedattribute("asyncOperandsDeviceType", asyncOperandsDeviceType))
     !isnothing(asyncOnly) && push!(attributes, namedattribute("asyncOnly", asyncOnly))
     !isnothing(waitOperandsSegments) && push!(attributes, namedattribute("waitOperandsSegments", waitOperandsSegments))
@@ -1239,7 +1239,7 @@ function nocreate(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClause
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -1281,7 +1281,7 @@ function parallel(asyncOperands, waitOperands, numGangs, numWorkers, vectorLengt
     attributes = NamedAttribute[]
     (ifCond != nothing) && push!(operands, get_value(ifCond))
     (selfCond != nothing) && push!(operands, get_value(selfCond))
-    push!(attributes, operandsegmentsizes([length(asyncOperands), length(waitOperands), length(numGangs), length(numWorkers), length(vectorLength), (ifCond==nothing) ? 0 : 1(selfCond==nothing) ? 0 : 1length(reductionOperands), length(gangPrivateOperands), length(gangFirstPrivateOperands), length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([length(asyncOperands), length(waitOperands), length(numGangs), length(numWorkers), length(vectorLength), (ifCond==nothing) ? 0 : 1, (selfCond==nothing) ? 0 : 1, length(reductionOperands), length(gangPrivateOperands), length(gangFirstPrivateOperands), length(dataClauseOperands), ]))
     !isnothing(asyncOperandsDeviceType) && push!(attributes, namedattribute("asyncOperandsDeviceType", asyncOperandsDeviceType))
     !isnothing(asyncOnly) && push!(attributes, namedattribute("asyncOnly", asyncOnly))
     !isnothing(waitOperandsSegments) && push!(attributes, namedattribute("waitOperandsSegments", waitOperandsSegments))
@@ -1336,7 +1336,7 @@ function present(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClause=
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -1379,7 +1379,7 @@ function private(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClause=
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -1473,7 +1473,7 @@ function reduction(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClaus
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -1634,7 +1634,7 @@ function serial(asyncOperands, waitOperands, ifCond=nothing; selfCond=nothing, r
     attributes = NamedAttribute[]
     (ifCond != nothing) && push!(operands, get_value(ifCond))
     (selfCond != nothing) && push!(operands, get_value(selfCond))
-    push!(attributes, operandsegmentsizes([length(asyncOperands), length(waitOperands), (ifCond==nothing) ? 0 : 1(selfCond==nothing) ? 0 : 1length(reductionOperands), length(gangPrivateOperands), length(gangFirstPrivateOperands), length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([length(asyncOperands), length(waitOperands), (ifCond==nothing) ? 0 : 1, (selfCond==nothing) ? 0 : 1, length(reductionOperands), length(gangPrivateOperands), length(gangFirstPrivateOperands), length(dataClauseOperands), ]))
     !isnothing(asyncOperandsDeviceType) && push!(attributes, namedattribute("asyncOperandsDeviceType", asyncOperandsDeviceType))
     !isnothing(asyncOnly) && push!(attributes, namedattribute("asyncOnly", asyncOnly))
     !isnothing(waitOperandsSegments) && push!(attributes, namedattribute("waitOperandsSegments", waitOperandsSegments))
@@ -1676,7 +1676,7 @@ function set(defaultAsync=nothing; deviceNum=nothing, ifCond=nothing, device_typ
     (defaultAsync != nothing) && push!(operands, get_value(defaultAsync))
     (deviceNum != nothing) && push!(operands, get_value(deviceNum))
     (ifCond != nothing) && push!(operands, get_value(ifCond))
-    push!(attributes, operandsegmentsizes([(defaultAsync==nothing) ? 0 : 1(deviceNum==nothing) ? 0 : 1(ifCond==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([(defaultAsync==nothing) ? 0 : 1, (deviceNum==nothing) ? 0 : 1, (ifCond==nothing) ? 0 : 1, ]))
     !isnothing(device_type) && push!(attributes, namedattribute("device_type", device_type))
     
     create_operation(
@@ -1708,7 +1708,7 @@ function shutdown(deviceNumOperand=nothing; ifCond=nothing, device_types=nothing
     attributes = NamedAttribute[]
     (deviceNumOperand != nothing) && push!(operands, get_value(deviceNumOperand))
     (ifCond != nothing) && push!(operands, get_value(ifCond))
-    push!(attributes, operandsegmentsizes([(deviceNumOperand==nothing) ? 0 : 1(ifCond==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([(deviceNumOperand==nothing) ? 0 : 1, (ifCond==nothing) ? 0 : 1, ]))
     !isnothing(device_types) && push!(attributes, namedattribute("device_types", device_types))
     
     create_operation(
@@ -1771,7 +1771,7 @@ function update_device(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataC
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -1848,7 +1848,7 @@ function update(ifCond=nothing; asyncOperands, waitOperands, dataClauseOperands,
     successors = Block[]
     attributes = NamedAttribute[]
     (ifCond != nothing) && push!(operands, get_value(ifCond))
-    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1length(asyncOperands), length(waitOperands), length(dataClauseOperands), ]))
+    push!(attributes, operandsegmentsizes([(ifCond==nothing) ? 0 : 1, length(asyncOperands), length(waitOperands), length(dataClauseOperands), ]))
     !isnothing(asyncOperandsDeviceType) && push!(attributes, namedattribute("asyncOperandsDeviceType", asyncOperandsDeviceType))
     !isnothing(async) && push!(attributes, namedattribute("async", async))
     !isnothing(waitOperandsSegments) && push!(attributes, namedattribute("waitOperandsSegments", waitOperandsSegments))
@@ -1894,7 +1894,7 @@ function use_device(varPtr, varPtrPtr=nothing; bounds, accPtr::IR.Type, dataClau
     successors = Block[]
     attributes = NamedAttribute[]
     (varPtrPtr != nothing) && push!(operands, get_value(varPtrPtr))
-    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1length(bounds), ]))
+    push!(attributes, operandsegmentsizes([1, (varPtrPtr==nothing) ? 0 : 1, length(bounds), ]))
     !isnothing(dataClause) && push!(attributes, namedattribute("dataClause", dataClause))
     !isnothing(structured) && push!(attributes, namedattribute("structured", structured))
     !isnothing(implicit) && push!(attributes, namedattribute("implicit", implicit))
@@ -1930,7 +1930,7 @@ function wait(waitOperands, asyncOperand=nothing; waitDevnum=nothing, ifCond=not
     (asyncOperand != nothing) && push!(operands, get_value(asyncOperand))
     (waitDevnum != nothing) && push!(operands, get_value(waitDevnum))
     (ifCond != nothing) && push!(operands, get_value(ifCond))
-    push!(attributes, operandsegmentsizes([length(waitOperands), (asyncOperand==nothing) ? 0 : 1(waitDevnum==nothing) ? 0 : 1(ifCond==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([length(waitOperands), (asyncOperand==nothing) ? 0 : 1, (waitDevnum==nothing) ? 0 : 1, (ifCond==nothing) ? 0 : 1, ]))
     !isnothing(async) && push!(attributes, namedattribute("async", async))
     
     create_operation(

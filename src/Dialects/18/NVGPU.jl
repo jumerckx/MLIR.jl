@@ -62,7 +62,7 @@ function device_async_copy(dst, dstIndices, src, srcIndices, srcElements=nothing
     successors = Block[]
     attributes = NamedAttribute[namedattribute("dstElements", dstElements), ]
     (srcElements != nothing) && push!(operands, get_value(srcElements))
-    push!(attributes, operandsegmentsizes([1, length(dstIndices), 1, length(srcIndices), (srcElements==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, length(dstIndices), 1, length(srcIndices), (srcElements==nothing) ? 0 : 1, ]))
     !isnothing(bypassL1) && push!(attributes, namedattribute("bypassL1", bypassL1))
     
     create_operation(
@@ -477,7 +477,7 @@ function tma_async_load(dst, barriers, tensorMapDescriptor, coordinates, mbarId,
     attributes = NamedAttribute[]
     (multicastMask != nothing) && push!(operands, get_value(multicastMask))
     (predicate != nothing) && push!(operands, get_value(predicate))
-    push!(attributes, operandsegmentsizes([1, 1, 1, length(coordinates), 1, (multicastMask==nothing) ? 0 : 1(predicate==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, 1, length(coordinates), 1, (multicastMask==nothing) ? 0 : 1, (predicate==nothing) ? 0 : 1, ]))
     
     create_operation(
         "nvgpu.tma.async.load", location;
@@ -503,7 +503,7 @@ function tma_async_store(src, tensorMapDescriptor, coordinates, predicate=nothin
     successors = Block[]
     attributes = NamedAttribute[]
     (predicate != nothing) && push!(operands, get_value(predicate))
-    push!(attributes, operandsegmentsizes([1, 1, length(coordinates), (predicate==nothing) ? 0 : 1]))
+    push!(attributes, operandsegmentsizes([1, 1, length(coordinates), (predicate==nothing) ? 0 : 1, ]))
     
     create_operation(
         "nvgpu.tma.async.store", location;
