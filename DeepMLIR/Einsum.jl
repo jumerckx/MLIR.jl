@@ -57,7 +57,10 @@ end
 abstract type ExecuteRegion end
 generate_return(cg::CodegenContext{ExecuteRegion}, values; location) = scf.yield(values; location)
 generate_function(cg::CodegenContext{ExecuteRegion}, argtypes, rettypes, reg; name) = reg
-aggregate_funcs(cg::Generate.CodegenContext{ExecuteRegion}, funcs) = only(funcs)
+function aggregate_funcs(cg::Generate.CodegenContext{ExecuteRegion}, funcs)
+    length(funcs) > 1 && error("Functions that are called within an ExecuteRegion context must all be inlined. Found $(length(funcs)-1) explicit calls within.")
+    only(funcs)
+end
 
 @intrinsic function execute_region(f, T)
     cg = CodegenContext{ExecuteRegion}()

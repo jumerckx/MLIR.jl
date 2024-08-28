@@ -1,3 +1,5 @@
 [deps]
+Chairmarks = "0ca39b1e-fe0b-4e98-acfc-b1656634c4de"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 MLIR = "bfde9dd4-8f40-4a1e-be09-1475335e1c92"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"

@@ -15,6 +15,7 @@ IR.Type(::Type{MLIRInteger{N}}) where {N} = IR.Type(mlirIntegerTypeGet(context()
 
 const i1 = MLIRInteger{1}
 BoolTrait(::Type{i1}) = Generate.Boollike()
+@intrinsic Base.:!(a::i1)::i1 = i1(Dialects.arith.xori(a, i1(true))|>result)
 
 const i8 = MLIRInteger{8}
 const i16 = MLIRInteger{16}
@@ -34,11 +35,20 @@ const i64 = MLIRInteger{64}
 @intrinsic Base.min(a::T, b::T) where {T<:MLIRInteger} = T(Dialects.arith.minsi(a, b)|>result)
 @intrinsic Base.max(a::T, b::T) where {T<:MLIRInteger} = T(Dialects.arith.maxsi(a, b)|>result)
 
+@intrinsic Base.:&(a::T, b::T) where {T<:MLIRInteger} = T(Dialects.arith.andi(a, b)|>result)
+
 # promote constant julia integers to int
 @intrinsic i64(x::Integer) = i64(Dialects.arith.constant(value=Attribute(Int64(x)), result=IR.Type(i64))|>result)
 @intrinsic i32(x::Integer) = i32(Dialects.arith.constant(value=Attribute(Int32(x)), result=IR.Type(i32))|>result)
 @intrinsic i16(x::Integer) = i16(Dialects.arith.constant(value=Attribute(Int16(x)), result=IR.Type(i16))|>result)
 @intrinsic i8(x::Integer) = i8(Dialects.arith.constant(value=Attribute(Int8(x)), result=IR.Type(i8))|>result)
+@intrinsic i1(x::Bool) = i1(Dialects.arith.constant(value=Attribute(Int8(x)), result=IR.Type(i1))|>result)
+
+i64(x::i64) = x
+i32(x::i32) = x
+i16(x::i16) = x
+i8(x::i8) = x
+i1(x::i1) = x
 
 Base.promote_rule(::Type{T}, ::Type{I}) where {T<:MLIRInteger, I<:Integer} = T
 Base.convert(::Type{T}, x::T) where {T <: MLIRInteger} = x
@@ -104,16 +114,21 @@ ValueTrait(::Type{<:MLIRIndex}) = Convertible()
 @intrinsic Base.:+(a::index, b::index)::index = index(Dialects.index.add(a, b)|>result)
 @intrinsic Base.:-(a::index, b::index)::index = index(Dialects.index.sub(a, b)|>result)
 @intrinsic Base.:*(a::index, b::index)::index = index(Dialects.index.mul(a, b)|>result)
-@intrinsic Base.:/(a::index, b::index)::index = index(Dialects.index.divs(a, b)|>result)
+@intrinsic Base.div(a::index, b::index)::index = index(Dialects.index.divs(a, b)|>result)
 
 # TODO:
-# @intrinsic Base.:>(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, predicate=...)|>result)
-# @intrinsic Base.:>=(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, predicate=...)|>result)
-# @intrinsic Base.:<(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, predicate=...)|>result)
-# @intrinsic Base.:<=(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, predicate=...)|>result)
+@intrinsic Base.:>(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, pred=4)|>result)
+@intrinsic Base.:>=(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, pred=5)|>result)
+@intrinsic Base.:<(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, pred=2)|>result)
+@intrinsic Base.:<=(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, pred=3)|>result)
+@intrinsic Base.:(==)(a::index, b::index)::i1 = i1(Dialects.index.cmp(a, b, pred=0)|>result)
+
+@intrinsic Base.min(a::index, b::index) = index(Dialects.index.mins(a, b)|>result)
+@intrinsic Base.max(a::index, b::index) = index(Dialects.index.maxs(a, b)|>result)
 
 # promote constant julia integers to index
 @intrinsic index(x::Integer) = index(Dialects.index.constant(value=Attribute(x, IR.Type(index)), result=IR.Type(index))|>result)
+index(x::index) = x
 Base.promote_rule(::Type{index}, ::Type{I}) where {I<:Integer} = index
 function Base.convert(::Type{index}, x::Integer)::index
     index(x)
@@ -122,13 +137,12 @@ end
 @intrinsic i64(x::index) = i64(Dialects.index.casts(x, output=IR.Type(i64))|>result)
 @intrinsic index(x::i64) = index(Dialects.index.casts(x, output=IR.Type(index))|>result)
 
+Base.to_shape(i::index) = i
+Base.to_shape(r::Base.OneTo{index}) = index(last(r))
+
 ### abstract type for array-like types ###
 abstract type MLIRArrayLike{T, N} <: AbstractArray{T, N} end
 
-# implementation detail: reinterpret shouldn't try reinterpreting individual elements:
-function Base.reinterpret(::Type{Tuple{A}}, array::A) where {A<:MLIRArrayLike}
-    return (array, )
-end
 ValueTrait(::Type{<:MLIRArrayLike}) = Convertible()
 Base.show(io::IO, a::A) where {A<:MLIRArrayLike{T, N}} where {T, N} = print(io, "$A[...]")
 Base.show(io::IO, ::MIME{Symbol("text/plain")}, a::A) where {A<:MLIRArrayLike{T, N}} where {T, N} = print(io, "$A[...]")
@@ -200,3 +214,66 @@ IR.Type(::Type{MLIRTensor{T, N}}) where {T, N} = mlirRankedTensorTypeGet(
     IR.Type(T),
     Attribute()) |> IR.Type
 const tensor = MLIRTensor
+
+@intrinsic function Base.size(A::MLIRTensor{T, N}) where {T, N}
+    sizes = []
+    for i in 1:N
+        s = Dialects.tensor.dim(A, index(i-1))|>result
+        push!(sizes, index(s))
+    end
+    return Tuple(sizes)::NTuple{N, index}
+end
+
+@intrinsic function _create_empty_tensor(dims, element_type)
+    MLIRTensor{element_type, length(dims)}(Dialects.tensor.empty(
+        dims;
+        result=IR.TensorType(fill(IR.dynsize(), length(dims)), IR.Type(element_type))
+    ) |> result)
+end
+
+# inline these definitions because the type argument can't be converted to an argument in MLIR code.
+@inline Base.similar(a::MLIRTensor{T}) where {T} = similar(a, T)
+@inline Base.similar(a::MLIRTensor, ::Type{T}) where {T} = similar(a, T, Base.to_shape(axes(a)))
+@inline Base.similar(::MLIRTensor{T}, ::Type{T}, dims::NTuple{N, index}) where {T, N} = MLIRTensor{T}(undef, dims)
+
+@inline Base.similar(::Type{T}, dims::NTuple{N, index}) where {N, T<:MLIRTensor} = T(undef, dims)
+
+function MLIRTensor{T, N}(::UndefInitializer, dims::NTuple{N, index}) where {T, N}
+    _create_empty_tensor(dims, T)
+end
+
+# type and dimensionality specified
+MLIRTensor{T, N}(::UndefInitializer, dims::Vararg{index, N}) where {T, N} = MLIRTensor{T, N}(undef, convert(Tuple{Vararg{index}}, dims))
+
+# only type specified
+MLIRTensor{T}(::UndefInitializer, dims::NTuple{N,index}) where {T, N} = MLIRTensor{T, N}(undef, convert(Tuple{Vararg{index}}, dims))
+MLIRTensor{T}(::UndefInitializer, dims::Vararg{index,N}) where {T, N} = MLIRTensor{T, N}(undef, convert(Tuple{Vararg{index}}, dims))
+
+
+
+struct MLIRArrayStyle{N} <: Base.Broadcast.AbstractArrayStyle{N} end
+MLIRArrayStyle(::Val{N}) where {N} = MLIRArrayStyle{N}()
+
+# identify the broadcast style of a MLIRTensor
+Base.Broadcast.BroadcastStyle(::Type{<:MLIRTensor{T,N}}) where {T,N} = MLIRArrayStyle{N}()
+
+# don't check for broadcast compatibility because we can't throw errors either way.
+Base.Broadcast._bcs1(a::Base.OneTo{index}, b::Base.OneTo{index}) = i1(Base.Broadcast._bcsm(b, a)) ? b : a
+function Base._eq(t1::NTuple{N, T}, t2::NTuple{N, T}) where {N, T<:Base.OneTo{index}}
+    eq = t1[1] == t2[1]
+    if !eq
+        return eq
+    else
+        return i1(Base._eq(Base.tail(t1), Base.tail(t2)))
+    end
+end
+
+# # when we are dealing with different buffer styles, we cannot know
+# # which one is better, so use shared memory
+# BroadcastStyle(::MtlArrayStyle{N, S1},
+#                ::MtlArrayStyle{N, S2}) where {N,S1,S2} =
+#     MtlArrayStyle{N, SharedStorage}()
+
+# allocation of output arrays
+Base.similar(bc::Base.Broadcast.Broadcasted{MLIRArrayStyle{N}}, ::Type{T}, dims) where {T,N} =
+    similar(MLIRTensor{T,length(dims)}, dims)
