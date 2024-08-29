@@ -249,6 +249,21 @@ MLIRTensor{T, N}(::UndefInitializer, dims::Vararg{index, N}) where {T, N} = MLIR
 MLIRTensor{T}(::UndefInitializer, dims::NTuple{N,index}) where {T, N} = MLIRTensor{T, N}(undef, convert(Tuple{Vararg{index}}, dims))
 MLIRTensor{T}(::UndefInitializer, dims::Vararg{index,N}) where {T, N} = MLIRTensor{T, N}(undef, convert(Tuple{Vararg{index}}, dims))
 
+# static tensor
+
+struct MLIRStaticTensor{T, N, S} <: MLIRArrayLike{T, N}
+    value::Value
+end
+function IR.Type(::Type{MLIRStaticTensor{T, N, S}}) where {T, N, S}
+    IR.Type(mlirRankedTensorTypeGet(
+        N,
+        Int[S.parameters...],
+        IR.Type(T),
+        Attribute(),
+    ))
+end
+static_size(::Type{MLIRStaticTensor{T, N, S}}) where {T, N, S} = S.parameters
+@intrinsic Base.size(::MLIRStaticTensor{T, N, S}) where {T, N, S} = NTuple{N, index}(index.(S.parameters))
 
 
 struct MLIRArrayStyle{N} <: Base.Broadcast.AbstractArrayStyle{N} end
@@ -268,12 +283,24 @@ function Base._eq(t1::NTuple{N, T}, t2::NTuple{N, T}) where {N, T<:Base.OneTo{in
     end
 end
 
-# # when we are dealing with different buffer styles, we cannot know
-# # which one is better, so use shared memory
-# BroadcastStyle(::MtlArrayStyle{N, S1},
-#                ::MtlArrayStyle{N, S2}) where {N,S1,S2} =
-#     MtlArrayStyle{N, SharedStorage}()
 
 # allocation of output arrays
-Base.similar(bc::Base.Broadcast.Broadcasted{MLIRArrayStyle{N}}, ::Type{T}, dims) where {T,N} =
-    similar(MLIRTensor{T,length(dims)}, dims)
+@inline Base.similar(bc::Base.Broadcast.Broadcasted{<:MLIRArrayStyle}, ::Type{T}) where {T} = similar(bc, T, axes(bc))
+@inline Base.similar(bc::Base.Broadcast.Broadcasted{<:MLIRArrayStyle{N}}, ::Type{T}, dims) where {T,N} =
+    similar(MLIRTensor{T, N}, dims)
+
+@inline function Base.Broadcast.materialize(bc::Base.Broadcast.Broadcasted{<:MLIRArrayStyle})
+    Eltype = Base.Broadcast.combine_eltypes(bc.f, bc.args)
+    result = similar(bc, Eltype)
+
+end
+
+@intrinsic function prepare(bc::Base.Broadcast.Broadcasted{<:MLIRArrayStyle})
+    for arg in bc.args
+        prepare(arg)
+    end
+end
+
+function prepare(arg::MLIRTensor)
+
+end

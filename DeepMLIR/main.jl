@@ -113,115 +113,31 @@ Base.code_ircode(Tuple{MLIRTensor{i64, 2}}, interp=Generate.MLIRInterpreter()) d
 end
 
 cg(Tuple{MLIRTensor{i64, 2}}) do A
-    Base.broadcasted(relu, A)[1, 1]
-end
-
-cg(Tuple{MLIRTensor{i64, 2}}) do A
-    b = Base.broadcasted(relu, A)
-    @inbounds Base.Broadcast._broadcast_getindex(b, CartesianIndex(1, 1))
+    bc = Base.broadcasted(relu, A)
+    ElType = Base.Broadcast.combine_eltypes(bc.f, bc.args)
+    similar(bc, ElType)
 end
 
 cg(Tuple{MLIRTensor{i64, 2}, MLIRTensor{i64, 2}}) do A, B
-    # b = Base.broadcasted(+, A, B)
-    # axes(b)
-    Base.Broadcast._bcs1(axes(A), axes(B))
-    # Base.Broadcast._bcsm(axes(A), axes(B))
+    A .+ B
 end
 
-Base.code_ircode(Tuple{MLIRTensor{i64, 2}, MLIRTensor{i64, 2}}, interp=Generate.MLIRInterpreter()) do A, B
-    # b = Base.broadcasted(+, A, B)
-    # axes(b)
-    # length(axes(A)[1])
-    Base.Broadcast._bcs1(axes(A), axes(B))
-    # Base.Broadcast._bcsm(axes(A), axes(B))
+cg(Tuple{MLIRStaticTensor{i64, 2, Tuple{1,42}}}) do A
+    size(A)
 end
 
-Base.code_ircode(Base._eq, Tuple{Tuple{Base.OneTo{MLIRIndex}, Base.OneTo{MLIRIndex}}, Tuple{Base.OneTo{MLIRIndex}, Base.OneTo{MLIRIndex}}}, interp=Generate.MLIRInterpreter())
+Base.Broadcast.broadcasted(+, Base.Broadcast.broadcasted(-, rand(10), rand(1, 9)), rand(10, 9))
 
-cg(Tuple{i1}) do c
-    !c
+struct Eval
+
+Base.code_ircode(Tuple{MLIRStaticTensor{i64, 2, Tuple{1,2}}}, interp=Generate.MLIRInterpreter()) do A
+    size(A)
 end
 
-using Cthulhu
-# execute in REPL:
-# descend(Tuple{MLIRTensor{i64, 2}}, interp=Generate.MLIRInterpreter()) do A
-#     relu.(A)
-# end
-
-cg(Tuple{index, index}) do n, m
-    similar(MLIRTensor{i64, 1}, (n, m))
-end
-
-to_indices(A::MLIRTensor{i64, 2}, I::Tuple{CartesianIndex{2}})::Tuple{Int64, Int64}
-
-cg(Tuple{MLIRTensor{i64, 2}}) do A
-    relu.(A)
-end
-
-f(a) = relu.(a)
-
-# @enter f(randn(10))
-
-cg = CodegenContext()
-region = cg(Tuple{i64}) do el
-    execute_region(i64) do
-        relu(el)
-    end
-end
-
-f(a, b) = relu.(a*b)
-fib(n) = n < 2 ? n : fib(n-1) + fib(n-2)
-
-cg(Tuple{i64}) do n
-    fib(n)
-end
-
-cg(Tuple{i64}) do a
-    if a > a
-        b = a
-    else
-        b = a-a
-    end
-    return b
-end
+########## ForwardDiff ##########
 
 using ForwardDiff
 
 @time cg(Tuple{ForwardDiff.Dual{Nothing, f64, 1}}) do a
     a*a
 end
-
-a = ForwardDiff.Dual(23, 1)
-
-a*a
-
-ForwardDiff.Dual(10.).partials
-
-Base.code_ircode(Tuple{i64}, interp=Generate.MLIRInterpreter()) do a
-    if a > a
-        b = a
-    else
-        b = a-a
-    end
-    return b
-end
-
-a = randn(2, 1)
-
-bc1 = Base.broadcasted(relu, a)
-bc2 = Base.broadcasted(x->x^2, bc1)
-
-Base.Broadcast.instantiate(bc2)[2, 1]
-
-Base.materialize(bc2)
-
-#################################################
-
-g(a, b) = relu.(a .+ b)
-
-a, b = randn(10), randn(10, 2)
-
-@enter g(a, b)
-
-bc = Base.broadcasted(+, rand(10, 10), rand(10))
-Base.Broadcast.instantiate(bc)[9, 7]
